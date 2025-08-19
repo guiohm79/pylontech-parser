@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Battery, AlertTriangle, CheckCircle, Info, Thermometer, Zap, Clock, Download, BarChart3, FileText, TrendingUp, X, Edit2, Check } from 'lucide-react';
+import { Battery, AlertTriangle, CheckCircle, Info, Thermometer, Zap, Clock, Download, BarChart3, FileText, TrendingUp, X, Edit2, Check, Moon, Sun } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, Bar } from 'recharts';
 import './App.css';
 
@@ -11,6 +11,14 @@ const PylontechParser = () => {
   const [showComparison, setShowComparison] = useState(false); // Mode comparaison graphique
   const [editingBatteryId, setEditingBatteryId] = useState(null); // Batterie en cours de renommage
   const [editingName, setEditingName] = useState(''); // Nom temporaire pendant l'édition
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Récupérer la préférence depuis localStorage ou utiliser la préférence système
+    const saved = localStorage.getItem('pylontech-dark-mode');
+    if (saved !== null) {
+      return JSON.parse(saved);
+    }
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const [filters, setFilters] = useState({
     temperatureAlert: true,
     voltageAlert: true,
@@ -232,6 +240,13 @@ const PylontechParser = () => {
   const cancelEditing = () => {
     setEditingBatteryId(null);
     setEditingName('');
+  };
+
+  // Fonction pour basculer le thème
+  const toggleTheme = () => {
+    const newTheme = !isDarkMode;
+    setIsDarkMode(newTheme);
+    localStorage.setItem('pylontech-dark-mode', JSON.stringify(newTheme));
   };
 
   const exportData = (format) => {
@@ -1082,8 +1097,22 @@ const PylontechParser = () => {
     );
   };
 
+  // Appliquer le thème au document
+  React.useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
   return (
-    <div className="App">
+    <div className="App" data-theme={isDarkMode ? 'dark' : 'light'}>
+      {/* Bouton de basculement de thème */}
+      <button 
+        className="theme-toggle" 
+        onClick={toggleTheme}
+        title={isDarkMode ? 'Passer au thème clair' : 'Passer au thème sombre'}
+      >
+        {isDarkMode ? <Sun /> : <Moon />}
+      </button>
+      
       <div className="container">
         <h1>Parser Pylontech - Analyseur de Logs Multi-Batteries</h1>
         
