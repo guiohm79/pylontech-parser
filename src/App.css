@@ -450,6 +450,11 @@ tr.critical {
     flex-direction: column;
     gap: 1rem;
   }
+  
+  .btn-export {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+  }
 }
 
 /* Animations */
@@ -493,6 +498,14 @@ tr.critical {
   color: #6b7280;
 }
 
+.text-orange {
+  color: #f59e0b;
+}
+
+.text-purple {
+  color: #7c3aed;
+}
+
 .mb-4 {
   margin-bottom: 1rem;
 }
@@ -511,4 +524,365 @@ tr.critical {
 
 .rounded {
   border-radius: 0.5rem;
+}
+
+/* Actions d'export et fichiers */
+.top-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.current-file {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.875rem;
+}
+
+.comparison-badge {
+  font-size: 0.75rem;
+  background-color: #ddd6fe;
+  color: #5b21b6;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+.export-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-export:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59,130,246,0.3);
+}
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: #4b5563;
+  transform: translateY(-1px);
+}
+
+/* Graphiques */
+.charts-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+.chart-wrapper {
+  background-color: #fafafa;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+}
+
+.chart-wrapper h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1f2937;
+  text-align: center;
+}
+
+/* Comparaison de fichiers */
+.comparison-files {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.comparison-file-card {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.comparison-file-card:hover {
+  background-color: #f3f4f6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.comparison-file-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1f2937;
+  word-break: break-all;
+}
+
+.comparison-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.comparison-stats span {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.comparison-chart {
+  background-color: #fafafa;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+}
+
+.comparison-chart h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1f2937;
+  text-align: center;
+}
+
+.alert-critical {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* Sélecteur de batteries */
+.battery-selector {
+  background-color: #f8fafc;
+  border-radius: 0.75rem;
+  border: 2px solid #e2e8f0;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.battery-selector h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.battery-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.battery-card {
+  background-color: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.battery-card:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.battery-card.active {
+  border-color: #10b981;
+  background-color: #f0fdf4;
+  box-shadow: 0 4px 12px rgba(16,185,129,0.2);
+}
+
+.battery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.battery-id {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.remove-btn:hover {
+  background-color: #fee2e2;
+  transform: scale(1.1);
+}
+
+.battery-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.battery-filename {
+  font-size: 0.875rem;
+  color: #4b5563;
+  word-break: break-all;
+}
+
+.battery-stats {
+  font-size: 0.75rem;
+  color: #059669;
+  font-weight: 600;
+}
+
+.battery-loaded {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.battery-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-select {
+  padding: 0.5rem 1rem;
+  border: 2px solid #3b82f6;
+  background-color: white;
+  color: #3b82f6;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-select:hover {
+  background-color: #3b82f6;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.btn-select.active {
+  background-color: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.comparison-controls {
+  text-align: center;
+}
+
+.btn-comparison {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-comparison:hover {
+  background-color: #6d28d9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124,58,237,0.3);
+}
+
+.btn-comparison.active {
+  background-color: #059669;
+  box-shadow: 0 4px 12px rgba(5,150,105,0.3);
+}
+
+/* Responsive pour les nouvelles fonctionnalités */
+@media (max-width: 768px) {
+  .top-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .export-actions {
+    justify-content: center;
+  }
+  
+  .comparison-files {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-wrapper {
+    padding: 1rem;
+  }
+  
+  .charts-container {
+    gap: 1rem;
+  }
+  
+  .battery-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .battery-card {
+    padding: 0.75rem;
+  }
+  
+  .battery-selector {
+    padding: 1rem;
+  }
+  
+  .btn-comparison {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
 }

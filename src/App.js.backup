@@ -1,16 +1,15 @@
 import React, { useState, useCallback } from 'react';
-import { Battery, AlertTriangle, CheckCircle, Info, Thermometer, Zap, Clock, Download, BarChart3, FileText, TrendingUp, X, Edit2, Check } from 'lucide-react';
+import { Battery, AlertTriangle, CheckCircle, Info, Thermometer, Zap, Clock, Download, BarChart3, FileText, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, Bar } from 'recharts';
 import './App.css';
 
 const PylontechParser = () => {
+  // const [fileData, setFileData] = useState(null); // Utilisé pour le debug si besoin
   const [parsedData, setParsedData] = useState(null);
   const [selectedSection, setSelectedSection] = useState('info');
   const [loadedBatteries, setLoadedBatteries] = useState([]); // Toutes les batteries chargées
   const [selectedBatteryId, setSelectedBatteryId] = useState(null); // ID de la batterie sélectionnée
   const [showComparison, setShowComparison] = useState(false); // Mode comparaison graphique
-  const [editingBatteryId, setEditingBatteryId] = useState(null); // Batterie en cours de renommage
-  const [editingName, setEditingName] = useState(''); // Nom temporaire pendant l'édition
   const [filters, setFilters] = useState({
     temperatureAlert: true,
     voltageAlert: true,
@@ -61,10 +60,6 @@ const PylontechParser = () => {
         const [key, value] = line.split(':').map(s => s.trim());
         if (key && value) {
           data.info[key] = value;
-          // Extraire l'adresse device pour un nom plus parlant
-          if (key.toLowerCase().includes('device address')) {
-            data.deviceAddress = value;
-          }
         }
       }
       
@@ -131,53 +126,6 @@ const PylontechParser = () => {
     });
     
     return alerts;
-  };
-
-  // Fonction pour générer un ID unique de batterie à partir du nom de fichier
-  const generateBatteryId = (filename) => {
-    const match = filename.match(/H([A-Z0-9]+)_history/);
-    return match ? match[1] : filename.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
-  };
-
-  // Fonction pour générer un nom d'affichage intelligent
-  const generateDisplayName = (batteryData) => {
-    if (batteryData.deviceAddress) {
-      return `Batterie ${batteryData.deviceAddress}`;
-    }
-    if (batteryData.info && batteryData.info['Device address']) {
-      return `Batterie ${batteryData.info['Device address']}`;
-    }
-    // Fallback sur l'ID de la batterie
-    return `Batterie ${batteryData.batteryId.slice(0, 8)}`;
-  };
-
-  // Fonction pour renommer une batterie
-  const renameBattery = (batteryId, newName) => {
-    setLoadedBatteries(prev => prev.map(battery => 
-      battery.batteryId === batteryId 
-        ? { ...battery, displayName: newName }
-        : battery
-    ));
-    
-    // Mettre à jour parsedData si c'est la batterie sélectionnée
-    if (selectedBatteryId === batteryId && parsedData) {
-      setParsedData(prev => ({ ...prev, displayName: newName }));
-    }
-    
-    setEditingBatteryId(null);
-    setEditingName('');
-  };
-
-  // Fonction pour démarrer l'édition d'un nom
-  const startEditing = (batteryId, currentName) => {
-    setEditingBatteryId(batteryId);
-    setEditingName(currentName);
-  };
-
-  // Fonction pour annuler l'édition
-  const cancelEditing = () => {
-    setEditingBatteryId(null);
-    setEditingName('');
   };
 
   const exportData = (format) => {
@@ -331,6 +279,12 @@ const PylontechParser = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Fonction pour générer un ID unique de batterie à partir du nom de fichier
+  const generateBatteryId = (filename) => {
+    const match = filename.match(/H([A-Z0-9]+)_history/);
+    return match ? match[1] : filename.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+  };
+
   const prepareChartData = (singleBattery = false) => {
     if (singleBattery && parsedData?.history) {
       return parsedData.history.slice(0, 100).map((entry, index) => ({
@@ -370,198 +324,22 @@ const PylontechParser = () => {
 
   const handleFileDrop = useCallback((e) => {
     e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-    
-    const filePromises = files.map(file => {
-      if (file.type === 'text/plain') {
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const content = e.target.result;
-            const parsed = parseFile(content);
-            parsed.alerts = generateAlerts(parsed.history, thresholds);
-            parsed.filename = file.name;
-            parsed.batteryId = generateBatteryId(file.name);
-            parsed.loadedAt = new Date().toLocaleString('fr-FR');
-            // Générer un nom d'affichage intelligent
-            parsed.displayName = generateDisplayName(parsed);
-            resolve(parsed);
-          };
-          reader.readAsText(file);
-        });
-      }
-      return Promise.resolve(null);
-    });
-    
-    Promise.all(filePromises).then(results => {
-      const validFiles = results.filter(r => r !== null);
-      if (validFiles.length > 0) {
-        setLoadedBatteries(prev => {
-          const existing = prev.filter(battery => 
-            !validFiles.some(newBattery => newBattery.batteryId === battery.batteryId)
-          );
-          const updated = [...existing, ...validFiles];
-          
-          if (!selectedBatteryId && validFiles.length > 0) {
-            setSelectedBatteryId(validFiles[0].batteryId);
-            setParsedData(validFiles[0]);
-          }
-          
-          return updated;
-        });
-      }
-    });
-  }, [thresholds, selectedBatteryId]);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'text/plain') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target.result;
+        // setFileData(content); // Debug si n\u00e9cessaire
+        const parsed = parseFile(content);
+        parsed.alerts = generateAlerts(parsed.history, thresholds);
+        setParsedData(parsed);
+      };
+      reader.readAsText(file);
+    }
+  }, [thresholds]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
-  };
-
-  // Fonction pour sélectionner une batterie
-  const selectBattery = (batteryId) => {
-    const battery = loadedBatteries.find(b => b.batteryId === batteryId);
-    if (battery) {
-      setSelectedBatteryId(batteryId);
-      setParsedData(battery);
-      setShowComparison(false);
-    }
-  };
-
-  // Fonction pour supprimer une batterie
-  const removeBattery = (batteryId) => {
-    setLoadedBatteries(prev => prev.filter(b => b.batteryId !== batteryId));
-    if (selectedBatteryId === batteryId) {
-      const remaining = loadedBatteries.filter(b => b.batteryId !== batteryId);
-      if (remaining.length > 0) {
-        setSelectedBatteryId(remaining[0].batteryId);
-        setParsedData(remaining[0]);
-      } else {
-        setSelectedBatteryId(null);
-        setParsedData(null);
-      }
-    }
-  };
-
-  // Fonction pour obtenir les couleurs de graphique
-  const getBatteryColor = (index) => {
-    const colors = ['#2563eb', '#dc2626', '#059669', '#7c3aed', '#f59e0b', '#06b6d4'];
-    return colors[index % colors.length];
-  };
-
-  // Fonction pour recharger les seuils sur toutes les batteries
-  const updateAllBatteriesThresholds = (newThresholds) => {
-    setLoadedBatteries(prev => prev.map(battery => ({
-      ...battery,
-      alerts: generateAlerts(battery.history, newThresholds)
-    })));
-    
-    if (parsedData) {
-      const updatedParsedData = {
-        ...parsedData,
-        alerts: generateAlerts(parsedData.history, newThresholds)
-      };
-      setParsedData(updatedParsedData);
-    }
-  };
-
-  const renderBatterySelector = () => {
-    if (loadedBatteries.length === 0) return null;
-
-    return (
-      <div className="battery-selector">
-        <h3>Batteries chargées ({loadedBatteries.length})</h3>
-        <div className="battery-list">
-          {loadedBatteries.map((battery, index) => (
-            <div 
-              key={battery.batteryId} 
-              className={`battery-card ${selectedBatteryId === battery.batteryId ? 'active' : ''}`}
-            >
-              <div className="battery-info">
-                <div className="battery-header">
-                  {editingBatteryId === battery.batteryId ? (
-                    <div className="battery-rename">
-                      <input 
-                        type="text"
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        className="rename-input"
-                        autoFocus
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            renameBattery(battery.batteryId, editingName);
-                          } else if (e.key === 'Escape') {
-                            cancelEditing();
-                          }
-                        }}
-                      />
-                      <button 
-                        onClick={() => renameBattery(battery.batteryId, editingName)}
-                        className="confirm-btn"
-                        title="Confirmer"
-                      >
-                        <Check size={14} />
-                      </button>
-                      <button 
-                        onClick={cancelEditing}
-                        className="cancel-btn"
-                        title="Annuler"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="battery-name-display">
-                      <span className="battery-name">🔋 {battery.displayName}</span>
-                      <button 
-                        onClick={() => startEditing(battery.batteryId, battery.displayName)}
-                        className="edit-btn"
-                        title="Renommer cette batterie"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                    </div>
-                  )}
-                  <button 
-                    onClick={() => removeBattery(battery.batteryId)}
-                    className="remove-btn"
-                    title="Supprimer cette batterie"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-                <div className="battery-details">
-                  <span className="battery-filename">{battery.filename}</span>
-                  <span className="battery-stats">
-                    {battery.history.length} entrées | {battery.alerts.length} alertes
-                  </span>
-                  <span className="battery-loaded">Chargé: {battery.loadedAt}</span>
-                </div>
-              </div>
-              <div className="battery-actions">
-                <button 
-                  onClick={() => selectBattery(battery.batteryId)}
-                  className={`btn-select ${selectedBatteryId === battery.batteryId ? 'active' : ''}`}
-                >
-                  {selectedBatteryId === battery.batteryId ? 'Sélectionnée' : 'Sélectionner'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        {loadedBatteries.length > 1 && (
-          <div className="comparison-controls">
-            <button 
-              onClick={() => setShowComparison(!showComparison)}
-              className={`btn-comparison ${showComparison ? 'active' : ''}`}
-            >
-              <BarChart3 size={16} />
-              {showComparison ? 'Vue normale' : 'Comparaison graphique'}
-            </button>
-          </div>
-        )}
-      </div>
-    );
   };
 
   const renderInfoSection = () => {
@@ -681,7 +459,11 @@ const PylontechParser = () => {
                 onChange={(e) => {
                   const newThresholds = {...thresholds, tempWarning: parseFloat(e.target.value)};
                   setThresholds(newThresholds);
-                  updateAllBatteriesThresholds(newThresholds);
+                  if (parsedData) {
+                    const newParsedData = {...parsedData};
+                    newParsedData.alerts = generateAlerts(parsedData.history, newThresholds);
+                    setParsedData(newParsedData);
+                  }
                 }}
                 className="config-input"
               />
@@ -695,7 +477,11 @@ const PylontechParser = () => {
                 onChange={(e) => {
                   const newThresholds = {...thresholds, tempCritical: parseFloat(e.target.value)};
                   setThresholds(newThresholds);
-                  updateAllBatteriesThresholds(newThresholds);
+                  if (parsedData) {
+                    const newParsedData = {...parsedData};
+                    newParsedData.alerts = generateAlerts(parsedData.history, newThresholds);
+                    setParsedData(newParsedData);
+                  }
                 }}
                 className="config-input"
               />
@@ -709,7 +495,11 @@ const PylontechParser = () => {
                 onChange={(e) => {
                   const newThresholds = {...thresholds, voltageHigh: parseFloat(e.target.value)};
                   setThresholds(newThresholds);
-                  updateAllBatteriesThresholds(newThresholds);
+                  if (parsedData) {
+                    const newParsedData = {...parsedData};
+                    newParsedData.alerts = generateAlerts(parsedData.history, newThresholds);
+                    setParsedData(newParsedData);
+                  }
                 }}
                 className="config-input"
               />
@@ -723,7 +513,11 @@ const PylontechParser = () => {
                 onChange={(e) => {
                   const newThresholds = {...thresholds, voltageLow: parseFloat(e.target.value)};
                   setThresholds(newThresholds);
-                  updateAllBatteriesThresholds(newThresholds);
+                  if (parsedData) {
+                    const newParsedData = {...parsedData};
+                    newParsedData.alerts = generateAlerts(parsedData.history, newThresholds);
+                    setParsedData(newParsedData);
+                  }
                 }}
                 className="config-input"
               />
@@ -737,7 +531,11 @@ const PylontechParser = () => {
                 onChange={(e) => {
                   const newThresholds = {...thresholds, voltageHighCritical: parseFloat(e.target.value)};
                   setThresholds(newThresholds);
-                  updateAllBatteriesThresholds(newThresholds);
+                  if (parsedData) {
+                    const newParsedData = {...parsedData};
+                    newParsedData.alerts = generateAlerts(parsedData.history, newThresholds);
+                    setParsedData(newParsedData);
+                  }
                 }}
                 className="config-input"
               />
@@ -751,7 +549,11 @@ const PylontechParser = () => {
                 onChange={(e) => {
                   const newThresholds = {...thresholds, voltageLowCritical: parseFloat(e.target.value)};
                   setThresholds(newThresholds);
-                  updateAllBatteriesThresholds(newThresholds);
+                  if (parsedData) {
+                    const newParsedData = {...parsedData};
+                    newParsedData.alerts = generateAlerts(parsedData.history, newThresholds);
+                    setParsedData(newParsedData);
+                  }
                 }}
                 className="config-input"
               />
@@ -861,19 +663,15 @@ const PylontechParser = () => {
   };
 
   const renderChartsSection = () => {
-    if (showComparison && loadedBatteries.length > 1) {
-      return renderComparisonCharts();
-    }
-    
     if (!parsedData?.history?.length) return null;
     
-    const chartData = prepareChartData(true);
+    const chartData = prepareChartData();
     
     return (
       <div className="section">
         <h2>
           <TrendingUp className="text-blue" />
-          Graphiques Temporels - {parsedData.displayName}
+          Graphiques Temporels
         </h2>
         
         <div className="charts-container">
@@ -928,179 +726,159 @@ const PylontechParser = () => {
     );
   };
 
-  const renderComparisonCharts = () => {
-    if (loadedBatteries.length < 2) return null;
-    
-    const chartData = prepareChartData(false);
+  const renderComparisonSection = () => {
+    if (!comparisonMode || multipleFiles.length < 2) return null;
     
     return (
       <div className="section">
         <h2>
           <BarChart3 className="text-purple" />
-          Comparaison Graphique ({loadedBatteries.length} batteries)
+          Comparaison de Fichiers ({multipleFiles.length} fichiers)
         </h2>
         
-        <div className="charts-container">
-          <div className="chart-wrapper">
-            <h3>Comparaison Températures</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="timestamp" />
-                <YAxis domain={['dataMin - 2', 'dataMax + 2']} />
-                <Tooltip />
-                <Legend />
-                {loadedBatteries.map((battery, index) => (
-                  <Line
-                    key={battery.batteryId}
-                    type="monotone"
-                    dataKey={`temp_${battery.batteryId.slice(0, 8)}`}
-                    stroke={getBatteryColor(index)}
-                    name={`${battery.displayName} (°C)`}
-                    strokeWidth={2}
+        <div className="comparison-files">
+          {multipleFiles.map((file, index) => (
+            <div key={index} className="comparison-file-card">
+              <h4>{file.filename}</h4>
+              <div className="comparison-stats">
+                <span>Entrées: {file.history.length}</span>
+                <span>Alertes: {file.alerts.length}</span>
+                <span className="alert-critical">Critiques: {file.alerts.filter(a => a.type === 'critical').length}</span>
+                <button 
+                  onClick={() => setParsedData(file)}
+                  className="btn-secondary"
+                >
+                  Afficher
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="comparison-chart">
+          <h3>Comparaison des Alertes</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              {multipleFiles.map((file, index) => {
+                const data = [{
+                  name: file.filename.slice(0, 20),
+                  alerts: file.alerts.length,
+                  critical: file.alerts.filter(a => a.type === 'critical').length
+                }];
+                return (
+                  <Line 
+                    key={index} 
+                    type="monotone" 
+                    dataKey="alerts" 
+                    stroke={`hsl(${index * 60}, 70%, 50%)`}
+                    data={data}
                   />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          
-          <div className="chart-wrapper">
-            <h3>Comparaison Tensions</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="timestamp" />
-                <YAxis domain={['dataMin - 1', 'dataMax + 1']} />
-                <Tooltip />
-                <Legend />
-                {loadedBatteries.map((battery, index) => (
-                  <Line
-                    key={battery.batteryId}
-                    type="monotone"
-                    dataKey={`volt_${battery.batteryId.slice(0, 8)}`}
-                    stroke={getBatteryColor(index)}
-                    name={`${battery.displayName} (V)`}
-                    strokeWidth={2}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          
-          <div className="chart-wrapper">
-            <h3>Comparaison SOC</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="timestamp" />
-                <YAxis domain={[0, 100]} />
-                <Tooltip />
-                <Legend />
-                {loadedBatteries.map((battery, index) => (
-                  <Line
-                    key={battery.batteryId}
-                    type="monotone"
-                    dataKey={`soc_${battery.batteryId.slice(0, 8)}`}
-                    stroke={getBatteryColor(index)}
-                    name={`${battery.displayName} (%)`}
-                    strokeWidth={2}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+                );
+              })}
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
     );
   };
-
+ 
   return (
     <div className="App">
       <div className="container">
-        <h1>Parser Pylontech - Analyseur de Logs Multi-Batteries</h1>
+        <h1>Parser Pylontech - Analyseur de Logs</h1>
         
-        {loadedBatteries.length === 0 ? (
+        {!parsedData ? (
           <div
             className="drop-zone"
             onDrop={handleFileDrop}
             onDragOver={handleDragOver}
           >
             <div className="upload-icon">📁</div>
-            <p>Glissez et déposez vos fichiers historique.txt ici</p>
-            <p>📊 Un ou plusieurs fichiers : Analyse et comparaison automatique</p>
+            <p>Glissez et déposez votre/vos fichier(s) historique.txt ici</p>
+            <p>📊 Un fichier: Analyse standard</p>
+            <p>📈 Plusieurs fichiers: Mode comparaison</p>
             <p>Ou cliquez pour sélectionner</p>
           </div>
         ) : (
           <div>
-            {renderBatterySelector()}
-            
-            {parsedData && (
-              <div>
-                <div className="top-actions">
-                  <div className="file-info">
-                    <span className="current-file">📄 {parsedData.displayName}</span>
-                  <span className="current-file-detail">{parsedData.filename}</span>
-                    {showComparison && (
-                      <span className="comparison-badge">🔄 Mode Comparaison ({loadedBatteries.length} batteries)</span>
-                    )}
-                  </div>
-                  
-                  <div className="export-actions">
-                    <button onClick={() => exportData('csv')} className="btn-export">
-                      <Download size={16} />
-                      CSV
-                    </button>
-                    <button onClick={() => exportData('json')} className="btn-export">
-                      <Download size={16} />
-                      JSON
-                    </button>
-                    <button onClick={generateReport} className="btn-export">
-                      <FileText size={16} />
-                      Rapport
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="tabs">
-                  <button
-                    onClick={() => setSelectedSection('info')}
-                    className={`tab ${selectedSection === 'info' ? 'active' : ''}`}
-                  >
-                    Infos Système
-                  </button>
-                  <button
-                    onClick={() => setSelectedSection('stats')}
-                    className={`tab ${selectedSection === 'stats' ? 'active' : ''}`}
-                  >
-                    Statistiques
-                  </button>
-                  <button
-                    onClick={() => setSelectedSection('alerts')}
-                    className={`tab ${selectedSection === 'alerts' ? 'active' : ''}`}
-                  >
-                    Alertes
-                  </button>
-                  <button
-                    onClick={() => setSelectedSection('history')}
-                    className={`tab ${selectedSection === 'history' ? 'active' : ''}`}
-                  >
-                    Historique
-                  </button>
-                  <button
-                    onClick={() => setSelectedSection('charts')}
-                    className={`tab ${selectedSection === 'charts' ? 'active' : ''}`}
-                  >
-                    Graphiques
-                  </button>
-                </div>
-                
-                {selectedSection === 'info' && renderInfoSection()}
-                {selectedSection === 'stats' && renderStatsSection()}
-                {selectedSection === 'alerts' && renderAlertsSection()}
-                {selectedSection === 'history' && renderHistorySection()}
-                {selectedSection === 'charts' && renderChartsSection()}
+            <div className="top-actions">
+              <div className="file-info">
+                {parsedData.filename && (
+                  <span className="current-file">📄 {parsedData.filename}</span>
+                )}
+                {comparisonMode && (
+                  <span className="comparison-badge">🔀 Mode Comparaison ({multipleFiles.length} fichiers)</span>
+                )}
               </div>
-            )}
+              
+              <div className="export-actions">
+                <button onClick={() => exportData('csv')} className="btn-export">
+                  <Download size={16} />
+                  CSV
+                </button>
+                <button onClick={() => exportData('json')} className="btn-export">
+                  <Download size={16} />
+                  JSON
+                </button>
+                <button onClick={generateReport} className="btn-export">
+                  <FileText size={16} />
+                  Rapport
+                </button>
+              </div>
+            </div>
+            
+            <div className="tabs">
+              <button
+                onClick={() => setSelectedSection('info')}
+                className={`tab ${selectedSection === 'info' ? 'active' : ''}`}
+              >
+                Infos Système
+              </button>
+              <button
+                onClick={() => setSelectedSection('stats')}
+                className={`tab ${selectedSection === 'stats' ? 'active' : ''}`}
+              >
+                Statistiques
+              </button>
+              <button
+                onClick={() => setSelectedSection('alerts')}
+                className={`tab ${selectedSection === 'alerts' ? 'active' : ''}`}
+              >
+                Alertes
+              </button>
+              <button
+                onClick={() => setSelectedSection('history')}
+                className={`tab ${selectedSection === 'history' ? 'active' : ''}`}
+              >
+                Historique
+              </button>
+              <button
+                onClick={() => setSelectedSection('charts')}
+                className={`tab ${selectedSection === 'charts' ? 'active' : ''}`}
+              >
+                Graphiques
+              </button>
+              {comparisonMode && (
+                <button
+                  onClick={() => setSelectedSection('comparison')}
+                  className={`tab ${selectedSection === 'comparison' ? 'active' : ''}`}
+                >
+                  Comparaison
+                </button>
+              )}
+            </div>
+            
+            {selectedSection === 'info' && renderInfoSection()}
+            {selectedSection === 'stats' && renderStatsSection()}
+            {selectedSection === 'alerts' && renderAlertsSection()}
+            {selectedSection === 'history' && renderHistorySection()}
+            {selectedSection === 'charts' && renderChartsSection()}
+            {selectedSection === 'comparison' && renderComparisonSection()}
           </div>
         )}
       </div>
