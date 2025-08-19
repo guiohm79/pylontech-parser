@@ -846,6 +846,35 @@ tr.critical {
   box-shadow: 0 4px 12px rgba(5,150,105,0.3);
 }
 
+/* Styles pour les dates corrigées */
+.corrected-dates-badge {
+  display: inline-block;
+  margin-left: 1rem;
+  padding: 0.25rem 0.75rem;
+  background-color: #10b981;
+  color: white;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+.corrected-date {
+  font-weight: 600;
+  color: #059669;
+}
+
+.original-date {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
+  cursor: help;
+}
+
+.original-date:hover {
+  color: #374151;
+}
+
 /* Responsive pour les nouvelles fonctionnalités */
 @media (max-width: 768px) {
   .top-actions {

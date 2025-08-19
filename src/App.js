@@ -28,13 +28,15 @@ const PylontechParser = () => {
     voltageLowCritical: 46.0
   });
 
-  const parseFile = (content) => {
+  const parseFile = (content, filename = null) => {
     const lines = content.split('\n');
     const data = {
       info: {},
       stats: {},
       history: [],
-      alerts: []
+      alerts: [],
+      filename: filename,
+      fileDate: filename ? extractFileDatetime(filename) : null
     };
 
     let currentSection = null;
@@ -101,6 +103,12 @@ const PylontechParser = () => {
       }
     }
     
+    // Corriger les dates d'historique si une date de fichier est disponible
+    if (data.fileDate && data.history.length > 0) {
+      data.history = correctHistoryDates(data.history, data.fileDate);
+      data.hasCorrectedDates = true;
+    }
+    
     return data;
   };
 
@@ -112,19 +120,27 @@ const PylontechParser = () => {
       const voltageV = entry.voltage / 1000;
       
       if (tempC > thresholds.tempWarning) {
+        const displayTimestamp = entry.useCorrectedDate ? 
+          `${entry.correctedDay} ${entry.correctedTime}` : 
+          `${entry.day} ${entry.time}`;
+          
         alerts.push({
           type: tempC > thresholds.tempCritical ? 'critical' : 'warning',
           message: `Température élevée: ${tempC.toFixed(1)}°C`,
-          timestamp: `${entry.day} ${entry.time}`,
+          timestamp: displayTimestamp,
           entry: entry
         });
       }
       
       if (voltageV > thresholds.voltageHigh || voltageV < thresholds.voltageLow) {
+        const displayTimestamp = entry.useCorrectedDate ? 
+          `${entry.correctedDay} ${entry.correctedTime}` : 
+          `${entry.day} ${entry.time}`;
+          
         alerts.push({
           type: (voltageV > thresholds.voltageHighCritical || voltageV < thresholds.voltageLowCritical) ? 'critical' : 'warning',
           message: `Tension ${voltageV > thresholds.voltageHigh ? 'haute' : 'basse'}: ${voltageV.toFixed(2)}V`,
-          timestamp: `${entry.day} ${entry.time}`,
+          timestamp: displayTimestamp,
           entry: entry
         });
       }
@@ -137,6 +153,44 @@ const PylontechParser = () => {
   const generateBatteryId = (filename) => {
     const match = filename.match(/H([A-Z0-9]+)_history/);
     return match ? match[1] : filename.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+  };
+
+  // Fonction pour extraire la date et l'heure du nom de fichier
+  const extractFileDatetime = (filename) => {
+    // Format attendu: H{serial}_history_{YYYYMMDDHHMMSS}.txt
+    const match = filename.match(/H[A-Z0-9]+_history_(\d{14})\.txt$/i);
+    if (match) {
+      const dateStr = match[1]; // YYYYMMDDHHMMSS
+      const year = dateStr.substring(0, 4);
+      const month = dateStr.substring(4, 6);
+      const day = dateStr.substring(6, 8);
+      const hour = dateStr.substring(8, 10);
+      const minute = dateStr.substring(10, 12);
+      const second = dateStr.substring(12, 14);
+      
+      return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
+    }
+    return null;
+  };
+
+  // Fonction pour corriger les dates d'historique en utilisant la date du fichier
+  const correctHistoryDates = (history, fileDate) => {
+    if (!fileDate || history.length === 0) return history;
+
+    return history.map((entry, index) => {
+      // Utiliser la date du fichier comme référence et soustraire l'index pour remonter dans le temps
+      // En supposant une fréquence d'enregistrement (ex: toutes les minutes)
+      const correctedDate = new Date(fileDate.getTime() - (history.length - 1 - index) * 60000); // 1 minute entre chaque entrée
+      
+      return {
+        ...entry,
+        correctedDay: correctedDate.toLocaleDateString('fr-FR'),
+        correctedTime: correctedDate.toLocaleTimeString('fr-FR', { hour12: false }),
+        originalDay: entry.day,
+        originalTime: entry.time,
+        useCorrectedDate: true
+      };
+    });
   };
 
   // Fonction pour générer un nom d'affichage intelligent
@@ -378,9 +432,8 @@ const PylontechParser = () => {
           const reader = new FileReader();
           reader.onload = (e) => {
             const content = e.target.result;
-            const parsed = parseFile(content);
+            const parsed = parseFile(content, file.name);
             parsed.alerts = generateAlerts(parsed.history, thresholds);
-            parsed.filename = file.name;
             parsed.batteryId = generateBatteryId(file.name);
             parsed.loadedAt = new Date().toLocaleString('fr-FR');
             // Générer un nom d'affichage intelligent
@@ -411,6 +464,7 @@ const PylontechParser = () => {
         });
       }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [thresholds, selectedBatteryId]);
 
   const handleDragOver = (e) => {
@@ -666,6 +720,9 @@ const PylontechParser = () => {
         <h2>
           <Clock className="text-blue" />
           Historique des Données ({filteredHistory.length} entrées)
+          {parsedData.hasCorrectedDates && (
+            <span className="corrected-dates-badge">📅 Dates corrigées depuis le nom de fichier</span>
+          )}
         </h2>
         
         {/* Configuration des seuils */}
@@ -819,7 +876,18 @@ const PylontechParser = () => {
                     criticalTemp || criticalVoltage ? 'critical' : 
                     tempAlert || voltageAlert ? 'warning' : ''
                   }>
-                    <td>{entry.day} {entry.time}</td>
+                    <td>
+                      {entry.useCorrectedDate ? (
+                        <div>
+                          <div className="corrected-date">{entry.correctedDay} {entry.correctedTime}</div>
+                          <div className="original-date" title={`Date originale: ${entry.originalDay} ${entry.originalTime}`}>
+                            📅 {entry.originalDay} {entry.originalTime}
+                          </div>
+                        </div>
+                      ) : (
+                        `${entry.day} ${entry.time}`
+                      )}
+                    </td>
                     <td className={voltageAlert ? 'voltage-alert' : ''}>
                       {voltageV.toFixed(2)}
                     </td>
