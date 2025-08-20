@@ -8,6 +8,8 @@ const PylontechParser = () => {
   const [selectedSection, setSelectedSection] = useState('info');
   // const [showAdvancedAnalysis, setShowAdvancedAnalysis] = useState(false);
   const [analysisResults, setAnalysisResults] = useState(null);
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+  const [selectedCellEntry, setSelectedCellEntry] = useState(null);
   const [loadedBatteries, setLoadedBatteries] = useState([]); // Toutes les batteries chargées
   const [selectedBatteryId, setSelectedBatteryId] = useState(null); // ID de la batterie sélectionnée
   const [showComparison, setShowComparison] = useState(false); // Mode comparaison graphique
@@ -107,6 +109,79 @@ const PylontechParser = () => {
             tempState: parts[13],
             soc: parts[16]
           };
+          
+          // Parser les données détaillées des cellules
+          // Format: après l'index 17, nous avons des groupes pour chaque cellule
+          // Chaque cellule: numéro tension température état1 état2 pourcentage
+          if (parts.length > 17) {
+            const cellVoltages = [];
+            const cellTemperatures = [];
+            const cellStates = [];
+            const cellPercentages = [];
+            
+            // Chercher le démarrage des données de cellules 
+            // D'après votre exemple, il semble y avoir "50000" puis les cellules commencent
+            let startIndex = -1;
+            
+            // Chercher l'index de "50000" puis le premier "1" qui suit
+            for (let i = 17; i < parts.length - 1; i++) {
+              if (parts[i] === '50000' && parts[i + 1] === '1') {
+                startIndex = i + 1; // Commencer au "1" (première cellule)
+                break;
+              }
+            }
+            
+            // Si on ne trouve pas "50000", chercher juste le premier "1" après l'index 17
+            if (startIndex === -1) {
+              for (let i = 17; i < parts.length; i++) {
+                if (parts[i] === '1' && i + 5 < parts.length) {
+                  startIndex = i;
+                  break;
+                }
+              }
+            }
+            
+            // Parser les 15 cellules si on a trouvé le point de départ
+            if (startIndex !== -1) {
+              // Parser les 15 cellules (chaque cellule = 6 éléments: numéro, tension, température, état1, état2, pourcentage)
+              for (let cellNum = 0; cellNum < 15; cellNum++) {
+                const baseIndex = startIndex + cellNum * 6;
+                
+                // Vérifier qu'on ne dépasse pas la longueur du tableau
+                if (baseIndex + 5 >= parts.length) break;
+                
+                // Vérifier que nous avons bien un numéro de cellule séquentiel
+                const cellNumber = parseInt(parts[baseIndex]);
+                if (cellNumber === cellNum + 1) {
+                  const voltage = parseInt(parts[baseIndex + 1]);
+                  const temperature = parseInt(parts[baseIndex + 2]);
+                  const state1 = parts[baseIndex + 3];
+                  const state2 = parts[baseIndex + 4];
+                  const percentage = parts[baseIndex + 5];
+                  
+                  if (!isNaN(voltage) && voltage > 0) {
+                    cellVoltages.push(voltage);
+                  }
+                  if (!isNaN(temperature)) {
+                    cellTemperatures.push(temperature);
+                  }
+                  cellStates.push({ state1, state2 });
+                  cellPercentages.push(percentage);
+                } else {
+                  // Si le numéro ne correspond pas, on arrête (structure incorrecte)
+                  break;
+                }
+              }
+            }
+            
+            entry.cellData = {
+              voltages: cellVoltages,
+              temperatures: cellTemperatures,
+              states: cellStates,
+              percentages: cellPercentages,
+              cellCount: cellVoltages.length
+            };
+          }
           
           data.history.push(entry);
         }
@@ -535,6 +610,79 @@ const PylontechParser = () => {
   const getBatteryColor = (index) => {
     const colors = ['#2563eb', '#dc2626', '#059669', '#7c3aed', '#f59e0b', '#06b6d4'];
     return colors[index % colors.length];
+  };
+
+  // Fonction pour obtenir les couleurs des cellules (réservée pour usage futur)
+  // const getCellColor = (index) => {
+  //   const cellColors = [
+  //     '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+  //     '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
+  //     '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef'
+  //   ];
+  //   return cellColors[index % cellColors.length];
+  // };
+
+  // Fonction pour analyser les données des cellules
+  const analyzeCellData = (entry) => {
+    if (!entry.cellData || !entry.cellData.voltages.length) return null;
+
+    const voltages = entry.cellData.voltages;
+    const temperatures = entry.cellData.temperatures;
+    
+    // Calculs statistiques pour les tensions
+    const maxVoltage = Math.max(...voltages) / 1000;  // Conversion mV vers V
+    const minVoltage = Math.min(...voltages) / 1000;  // Conversion mV vers V  
+    const avgVoltage = voltages.reduce((acc, v) => acc + v, 0) / voltages.length / 1000;  // Conversion mV vers V
+    const voltageSpread = (maxVoltage - minVoltage);
+    
+    // Identifier les cellules avec des problèmes (basé sur l'écart à la moyenne)
+    const problematicCells = [];
+    const significantDeviation = 0.020; // 20mV de tolérance
+    
+    voltages.forEach((voltage, index) => {
+      const v = voltage / 1000;  // Conversion mV vers V
+      const deviationFromAvg = Math.abs(v - avgVoltage);
+      
+      // Une cellule est problématique si elle s'écarte de plus de 20mV de la moyenne
+      if (deviationFromAvg > significantDeviation) {
+        const temp = temperatures[index] ? temperatures[index] / 1000 : null;  // Conversion mK vers °C
+        problematicCells.push({
+          cellIndex: index,
+          voltage: v,
+          temperature: temp,
+          issue: v < avgVoltage ? 'Tension faible' : 'Tension élevée'
+        });
+      }
+    });
+
+    return {
+      cellCount: voltages.length,
+      maxVoltage,
+      minVoltage,
+      avgVoltage,
+      voltageSpread,
+      problematicCells,
+      hasTemperatureData: temperatures.length > 0
+    };
+  };
+
+  // Fonction pour préparer les données graphiques des cellules
+  const prepareCellChartData = (entry) => {
+    if (!entry.cellData || !entry.cellData.voltages.length) return [];
+
+    const voltages = entry.cellData.voltages;
+    const temperatures = entry.cellData.temperatures;
+    const states = entry.cellData.states || [];
+    const percentages = entry.cellData.percentages || [];
+
+    return voltages.map((voltage, index) => ({
+      cell: `Cell ${index + 1}`,
+      voltage: voltage / 1000,  // Conversion depuis mV vers V
+      temperature: temperatures[index] ? temperatures[index] / 1000 : null,  // Conversion depuis mK vers °C
+      state1: states[index]?.state1 || 'N/A',
+      state2: states[index]?.state2 || 'N/A',
+      percentage: percentages[index] || 'N/A'
+    }));
   };
 
   // Fonction pour recharger les seuils sur toutes les batteries
@@ -1004,6 +1152,17 @@ const PylontechParser = () => {
             >
               <Activity size={16} />
               Analyses Avancées
+            </button>
+            <button 
+              onClick={() => {
+                setShowDetailedAnalysis(true);
+                setSelectedSection('detailed');
+              }}
+              className="btn-detailed-analysis"
+              title="Analyse détaillée des cellules individuelles avec tensions et températures"
+            >
+              <Cpu size={16} />
+              Recherche Détaillée
             </button>
           </div>
         )}
@@ -1802,6 +1961,262 @@ const PylontechParser = () => {
     );
   };
 
+  const renderDetailedAnalysisSection = () => {
+    if (!showDetailedAnalysis || !parsedData?.history?.length) return null;
+
+    // Trouver les entrées avec des données de cellules
+    const entriesWithCellData = parsedData.history.filter(entry => 
+      entry.cellData && entry.cellData.voltages.length > 0
+    );
+
+    if (entriesWithCellData.length === 0) {
+      return (
+        <div className="section detailed-analysis">
+          <h2>
+            <Cpu className="text-blue" />
+            Recherche Détaillée - Analyse par Cellule
+          </h2>
+          <div className="no-cell-data">
+            <p>Aucune donnée détaillée de cellule trouvée dans ce fichier historique.</p>
+            <p>Les données de cellules individuelles ne sont peut-être pas disponibles dans cette version du fichier.</p>
+          </div>
+        </div>
+      );
+    }
+
+    // const latestEntry = entriesWithCellData[0];
+
+    return (
+      <div className="section detailed-analysis">
+        <h2>
+          <Cpu className="text-blue" />
+          Recherche Détaillée - Analyse par Cellule
+        </h2>
+        <div className="detailed-analysis-controls">
+          <button 
+            onClick={() => {
+              setShowDetailedAnalysis(false);
+              setSelectedCellEntry(null);
+              setSelectedSection('info');
+            }}
+            className="btn-close-detailed"
+          >
+            <X size={16} />
+            Fermer l'analyse détaillée
+          </button>
+        </div>
+
+        {/* Sélecteur d'entrée temporelle */}
+        <div className="time-selector">
+          <h3>Sélectionner une entrée temporelle</h3>
+          <div className="time-entries">
+            {entriesWithCellData.slice(0, 20).map((entry, index) => {
+              const displayTime = entry.useCorrectedDate ? 
+                `${entry.correctedDay} ${entry.correctedTime}` : 
+                `${entry.day} ${entry.time}`;
+              
+              return (
+                <button
+                  key={entry.id}
+                  onClick={() => setSelectedCellEntry(entry)}
+                  className={`time-entry ${selectedCellEntry?.id === entry.id ? 'active' : ''}`}
+                >
+                  <span className="entry-time">{displayTime}</span>
+                  <span className="entry-cells">{entry.cellData.cellCount} cellules</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Analyse de l'entrée sélectionnée ou la plus récente */}
+        {(() => {
+          const currentEntry = selectedCellEntry || entriesWithCellData[0];
+          const currentAnalysis = analyzeCellData(currentEntry);
+          const currentChartData = prepareCellChartData(currentEntry);
+
+          if (!currentAnalysis) return null;
+
+          const displayTime = currentEntry.useCorrectedDate ? 
+            `${currentEntry.correctedDay} ${currentEntry.correctedTime}` : 
+            `${currentEntry.day} ${currentEntry.time}`;
+
+          return (
+            <div className="cell-analysis-content">
+              <h3>Analyse détaillée - {displayTime}</h3>
+              
+              {/* Statistiques générales */}
+              <div className="cell-stats-overview">
+                <div className="stat-card">
+                  <div className="stat-label">Cellules analysées</div>
+                  <div className="stat-value">{currentAnalysis.cellCount}</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Tension moyenne</div>
+                  <div className="stat-value">{currentAnalysis.avgVoltage.toFixed(3)}V</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Écart de tension</div>
+                  <div className="stat-value">{(currentAnalysis.voltageSpread * 1000).toFixed(0)}mV</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Cellules problématiques</div>
+                  <div className="stat-value">{currentAnalysis.problematicCells.length}</div>
+                </div>
+              </div>
+
+              {/* Graphique des tensions par cellule */}
+              <div className="cell-charts-container">
+                <div className="chart-wrapper">
+                  <h4>Tensions des Cellules</h4>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <ComposedChart data={currentChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="cell" />
+                      <YAxis 
+                        yAxisId="voltage" 
+                        orientation="left" 
+                        domain={['dataMin - 0.01', 'dataMax + 0.01']}
+                        tickFormatter={(value) => `${Number(value).toFixed(3)}`}
+                        type="number"
+                      />
+                      <Tooltip formatter={(value, name, props) => {
+                        if (props.dataKey === 'voltage') {
+                          return [`${value.toFixed(3)}V`, 'Tension'];
+                        } else if (props.dataKey === 'temperature') {
+                          return [`${value?.toFixed(1)}°C`, 'Température'];
+                        }
+                        return [value, name];
+                      }} />
+                      <Legend />
+                      <Bar yAxisId="voltage" dataKey="voltage" fill="#3b82f6" name="Tension (V)" />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {currentAnalysis.hasTemperatureData && (
+                  <div className="chart-wrapper">
+                    <h4>Températures des Cellules</h4>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ComposedChart data={currentChartData.filter(d => d.temperature !== null)}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="cell" />
+                        <YAxis domain={['dataMin - 1', 'dataMax + 1']} />
+                        <Tooltip formatter={(value) => [`${value?.toFixed(1)}°C`, 'Température']} />
+                        <Legend />
+                        <Bar dataKey="temperature" fill="#f59e0b" name="Température (°C)" />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+
+              {/* Tableau détaillé des cellules */}
+              <div className="cells-detail-table">
+                <h4>Détail par Cellule</h4>
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Cellule</th>
+                        <th>Tension (V)</th>
+                        <th>Écart moy. (mV)</th>
+                        {currentAnalysis.hasTemperatureData && <th>Température (°C)</th>}
+                        <th>État cellule</th>
+                        <th>Charge (%)</th>
+                        <th>Statut global</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentEntry.cellData.voltages.map((voltage, index) => {
+                        const v = voltage / 1000;  // Conversion mV vers V
+                        const temp = currentEntry.cellData.temperatures[index] ? 
+                          currentEntry.cellData.temperatures[index] / 1000 : null;  // Conversion mK vers °C
+                        const deviation = ((v - currentAnalysis.avgVoltage) * 1000);
+                        const cellState = currentEntry.cellData.states ? currentEntry.cellData.states[index] : null;
+                        const percentage = currentEntry.cellData.percentages ? currentEntry.cellData.percentages[index] : null;
+                        
+                        let status = 'normal';
+                        if (Math.abs(deviation) > 20) status = 'warning';
+                        if (Math.abs(deviation) > 50) status = 'critical';
+                        
+                        // Vérifier aussi les états de la cellule pour déterminer le statut
+                        if (cellState && (cellState.state1 !== 'Normal' || cellState.state2 !== 'Normal')) {
+                          status = 'warning';
+                        }
+                        
+                        return (
+                          <tr key={index} className={status}>
+                            <td>Cellule {index + 1}</td>
+                            <td>{v.toFixed(3)}</td>
+                            <td className={deviation > 0 ? 'positive-deviation' : 'negative-deviation'}>
+                              {deviation > 0 ? '+' : ''}{deviation.toFixed(0)}
+                            </td>
+                            {currentAnalysis.hasTemperatureData && (
+                              <td>{temp ? temp.toFixed(1) : 'N/A'}</td>
+                            )}
+                            <td>
+                              {cellState ? (
+                                <div className="cell-state-details">
+                                  <span className={`state-indicator ${cellState.state1 === 'Normal' ? 'state-normal' : 'state-warning'}`}>
+                                    {cellState.state1}
+                                  </span>
+                                  <span className={`state-indicator ${cellState.state2 === 'Normal' ? 'state-normal' : 'state-warning'}`}>
+                                    {cellState.state2}
+                                  </span>
+                                </div>
+                              ) : 'N/A'}
+                            </td>
+                            <td>{percentage || 'N/A'}</td>
+                            <td>
+                              <span className={`cell-status cell-status-${status}`}>
+                                {status === 'normal' ? '✓ Normal' :
+                                 status === 'warning' ? '⚠ Attention' : '❌ Critique'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Cellules problématiques */}
+              {currentAnalysis.problematicCells.length > 0 && (
+                <div className="problematic-cells">
+                  <h4>Cellules Nécessitant une Attention</h4>
+                  <div className="problem-cells-grid">
+                    {currentAnalysis.problematicCells.map((cell, index) => (
+                      <div key={index} className="problem-cell-card">
+                        <div className="problem-cell-header">
+                          <span className="cell-number">Cellule {cell.cellIndex + 1}</span>
+                          <span className="cell-issue">{cell.issue}</span>
+                        </div>
+                        <div className="problem-cell-details">
+                          <div className="cell-detail">
+                            <span className="detail-label">Tension:</span>
+                            <span className="detail-value">{cell.voltage.toFixed(3)}V</span>
+                          </div>
+                          {cell.temperature && (
+                            <div className="cell-detail">
+                              <span className="detail-label">Température:</span>
+                              <span className="detail-value">{cell.temperature.toFixed(1)}°C</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </div>
+    );
+  };
+
   // Appliquer le thème au document
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
@@ -1903,6 +2318,15 @@ const PylontechParser = () => {
                       Analyses Avancées
                     </button>
                   )}
+                  {showDetailedAnalysis && (
+                    <button
+                      onClick={() => setSelectedSection('detailed')}
+                      className={`tab ${selectedSection === 'detailed' ? 'active' : ''}`}
+                    >
+                      <Cpu size={16} />
+                      Recherche Détaillée
+                    </button>
+                  )}
                 </div>
                 
                 {selectedSection === 'info' && renderInfoSection()}
@@ -1911,6 +2335,7 @@ const PylontechParser = () => {
                 {selectedSection === 'history' && renderHistorySection()}
                 {selectedSection === 'charts' && renderChartsSection()}
                 {selectedSection === 'advanced' && renderAdvancedAnalysisSection()}
+                {selectedSection === 'detailed' && renderDetailedAnalysisSection()}
               </div>
             )}
           </div>
