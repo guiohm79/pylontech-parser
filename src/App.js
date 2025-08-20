@@ -1143,29 +1143,6 @@ const PylontechParser = () => {
           </div>
         )}
         
-        {loadedBatteries.length > 0 && (
-          <div className="advanced-analysis-controls">
-            <button 
-              onClick={performAdvancedAnalysis}
-              className="btn-advanced-analysis"
-              title="Effectuer une analyse poussée de l'état et des performances des batteries"
-            >
-              <Activity size={16} />
-              Analyses Avancées
-            </button>
-            <button 
-              onClick={() => {
-                setShowDetailedAnalysis(true);
-                setSelectedSection('detailed');
-              }}
-              className="btn-detailed-analysis"
-              title="Analyse détaillée des cellules individuelles avec tensions et températures"
-            >
-              <Cpu size={16} />
-              Recherche Détaillée
-            </button>
-          </div>
-        )}
       </div>
     );
   };
@@ -2309,24 +2286,28 @@ const PylontechParser = () => {
                   >
                     Graphiques
                   </button>
-                  {analysisResults && (
-                    <button
-                      onClick={() => setSelectedSection('advanced')}
-                      className={`tab ${selectedSection === 'advanced' ? 'active' : ''}`}
-                    >
-                      <Activity size={16} />
-                      Analyses Avancées
-                    </button>
-                  )}
-                  {showDetailedAnalysis && (
-                    <button
-                      onClick={() => setSelectedSection('detailed')}
-                      className={`tab ${selectedSection === 'detailed' ? 'active' : ''}`}
-                    >
-                      <Cpu size={16} />
-                      Recherche Détaillée
-                    </button>
-                  )}
+                  <button
+                    onClick={() => {
+                      if (!analysisResults) {
+                        performAdvancedAnalysis();
+                      }
+                      setSelectedSection('advanced');
+                    }}
+                    className={`tab ${selectedSection === 'advanced' ? 'active' : ''}`}
+                  >
+                    <Activity size={16} />
+                    Analyses Avancées
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDetailedAnalysis(true);
+                      setSelectedSection('detailed');
+                    }}
+                    className={`tab ${selectedSection === 'detailed' ? 'active' : ''}`}
+                  >
+                    <Cpu size={16} />
+                    Recherche Détaillée
+                  </button>
                 </div>
                 
                 {selectedSection === 'info' && renderInfoSection()}
