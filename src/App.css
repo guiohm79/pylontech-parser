@@ -1,4 +1,4 @@
-/* Variables CSS pour les thèmes */
+/* Variables CSS pour les thèmes et analyses avancées */
 :root {
   /* Thème clair */
   --bg-primary: #f3f4f6;
@@ -1052,25 +1052,581 @@ tr.critical {
   .chart-wrapper {
     padding: 1rem;
   }
-  
-  .charts-container {
-    gap: 1rem;
-  }
-  
-  .battery-list {
-    grid-template-columns: 1fr;
-  }
-  
-  .battery-card {
-    padding: 0.75rem;
-  }
-  
-  .battery-selector {
+}
+
+/* ============================================
+   STYLES POUR LES ANALYSES AVANCÉES
+   ============================================ */
+
+/* Bouton Analyses Avancées */
+.advanced-analysis-controls {
+  margin-top: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-advanced-analysis {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+}
+
+.btn-advanced-analysis:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(124, 58, 237, 0.3);
+  background: linear-gradient(135deg, #6d28d9, #9333ea);
+}
+
+/* Section principale d'analyse avancée */
+.advanced-analysis {
+  padding: 2rem;
+}
+
+.advanced-analysis h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  color: #7c3aed;
+  font-size: 1.5rem;
+}
+
+.analysis-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+.analysis-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+/* Vue d'ensemble */
+.analysis-overview {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-color);
+}
+
+.overview-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.overview-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--bg-secondary);
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s ease;
+}
+
+.overview-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px var(--shadow-hover);
+}
+
+.card-icon {
+  font-size: 2rem;
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.card-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Cartes de santé des batteries */
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.health-card {
+  padding: 1.5rem;
+  background-color: var(--bg-tertiary);
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.health-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.health-header h4 {
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.health-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.health-excellent { background-color: #dcfce7; color: #166534; }
+.health-très-bon { background-color: #e0f2fe; color: #0277bd; }
+.health-bon { background-color: #fef3c7; color: #92400e; }
+.health-dégradé { background-color: #fed7aa; color: #c2410c; }
+.health-critique { background-color: #fecaca; color: #dc2626; }
+
+.health-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  position: relative;
+}
+
+.soh-estimated {
+  color: #f59e0b;
+  font-weight: bold;
+  margin-left: 0.25rem;
+  cursor: help;
+}
+
+.soh-legend {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background-color: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+html[data-theme="dark"] .soh-legend {
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.soh-legend p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.health-progress {
+  margin-top: 1rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Tables d'analyse */
+.degradation-table,
+.performance-table {
+  overflow-x: auto;
+}
+
+.degradation-table table,
+.performance-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.degradation-table th,
+.degradation-table td,
+.performance-table th,
+.performance-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.degradation-table th,
+.performance-table th {
+  background-color: var(--bg-tertiary);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Badges de tendance */
+.trend-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.trend-stable { background-color: #dcfce7; color: #166534; }
+.trend-dégradation-modérée { background-color: #fef3c7; color: #92400e; }
+.trend-dégradation-rapide { background-color: #fecaca; color: #dc2626; }
+.trend-amélioration { background-color: #dbeafe; color: #1d4ed8; }
+.trend-données-insuffisantes { background-color: #f3f4f6; color: #6b7280; }
+
+/* Badges de performance */
+.performance-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.performance-meilleure { background-color: #dcfce7; color: #166534; }
+.performance-au-dessus-de-la-moyenne { background-color: #dbeafe; color: #1d4ed8; }
+.performance-en-dessous-de-la-moyenne { background-color: #fef3c7; color: #92400e; }
+
+/* Rangs */
+.rank-top { 
+  color: #059669; 
+  font-weight: bold; 
+}
+
+.rank-middle { 
+  color: #d97706; 
+  font-weight: 500; 
+}
+
+.rank-bottom { 
+  color: #dc2626; 
+  font-weight: 500; 
+}
+
+/* Équilibrage des cellules */
+.cell-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.balance-card {
+  padding: 1.5rem;
+  background-color: var(--bg-tertiary);
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.balance-card h4 {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.balance-status {
+  margin-bottom: 1rem;
+}
+
+.balance-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.balance-bien-équilibré { background-color: #dcfce7; color: #166534; }
+.balance-légèrement-déséquilibré { background-color: #fef3c7; color: #92400e; }
+.balance-déséquilibré-modéré { background-color: #fed7aa; color: #c2410c; }
+.balance-déséquilibré-critique { background-color: #fecaca; color: #dc2626; }
+.balance-données-insuffisantes { background-color: #f3f4f6; color: #6b7280; }
+
+.balance-metrics {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+/* Évaluation des risques */
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.risk-card {
+  padding: 1.5rem;
+  background-color: var(--bg-tertiary);
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.risk-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.risk-header h4 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.risk-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.risk-faible { background-color: #dcfce7; color: #166534; }
+.risk-modéré { background-color: #fef3c7; color: #92400e; }
+.risk-élevé { background-color: #fed7aa; color: #c2410c; }
+.risk-critique { background-color: #fecaca; color: #dc2626; }
+
+.risk-score {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.score-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.score-fill {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-inner {
+  width: 60px;
+  height: 60px;
+  background-color: var(--bg-secondary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.risk-factors {
+  margin-top: 1rem;
+}
+
+.risk-factors h5 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.risk-factors ul {
+  list-style: none;
+  padding: 0;
+}
+
+.risk-factors li {
+  padding: 0.25rem 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  position: relative;
+  padding-left: 1rem;
+}
+
+.risk-factors li::before {
+  content: "⚠️";
+  position: absolute;
+  left: 0;
+}
+
+.no-risk {
+  color: #059669;
+  font-style: italic;
+}
+
+/* Recommandations */
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recommendation {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border-left: 4px solid transparent;
+}
+
+.recommendation-critical {
+  background-color: #fef2f2;
+  border-left-color: #dc2626;
+}
+
+.recommendation-warning {
+  background-color: #fffbeb;
+  border-left-color: #f59e0b;
+}
+
+.recommendation-info {
+  background-color: #eff6ff;
+  border-left-color: #3b82f6;
+}
+
+html[data-theme="dark"] .recommendation-critical {
+  background-color: rgba(220, 38, 38, 0.1);
+}
+
+html[data-theme="dark"] .recommendation-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+html[data-theme="dark"] .recommendation-info {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.recommendation-icon {
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.recommendation-content {
+  flex: 1;
+}
+
+.recommendation-battery {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.recommendation-message {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.recommendation-priority {
+  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--bg-tertiary);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.no-recommendations {
+  text-align: center;
+  padding: 2rem;
+  color: #059669;
+}
+
+.no-recommendations p {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+}
+
+/* Responsive pour analyses avancées */
+@media (max-width: 768px) {
+  .advanced-analysis {
     padding: 1rem;
   }
   
-  .btn-comparison {
-    padding: 0.5rem 1rem;
-    font-size: 0.75rem;
+  .overview-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .health-grid,
+  .cell-balance-grid,
+  .risk-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .health-metrics {
+    grid-template-columns: 1fr;
+  }
+  
+  .recommendation {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .degradation-table,
+  .performance-table {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .overview-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .card-value {
+    font-size: 1.25rem;
+  }
+  
+  .analysis-section {
+    padding: 1rem;
   }
 }
