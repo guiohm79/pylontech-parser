@@ -761,35 +761,34 @@ const PylontechParser = () => {
       }
       
       let healthStatus = 'Excellent';
-      let healthScore = soh;
+      let healthScore = soh; // Commencer avec le SOH de base
       
-      // Déterminer le statut de santé
+      // Déterminer le statut de santé basé sur le SOH uniquement
       if (soh < 70) {
         healthStatus = 'Critique';
       } else if (soh < 80) {
         healthStatus = 'Dégradé';
-        healthScore = soh + 2;
       } else if (soh < 90) {
         healthStatus = 'Bon';
-        healthScore = soh + 3;
       } else if (soh < 95) {
         healthStatus = 'Très Bon';
-        healthScore = soh + 2;
       } else {
         healthStatus = 'Excellent';
       }
       
-      // Ajustements selon les cycles et autres facteurs
-      if (cycles > 5000) healthScore -= 8;
-      else if (cycles > 3000) healthScore -= 4;
-      else if (cycles > 1500) healthScore -= 2;
+      // Ajustements mineurs basés sur les cycles (sans inverser l'ordre)
+      if (cycles > 6000) healthScore -= Math.min(5, (cycles - 6000) / 1000 * 2);
+      else if (cycles > 4000) healthScore -= Math.min(3, (cycles - 4000) / 1000 * 1.5);
+      else if (cycles > 2000) healthScore -= Math.min(2, (cycles - 2000) / 1000);
       
-      // Ajustement selon les alertes
+      // Ajustement selon les alertes (impact plus modéré)
       const criticalAlerts = battery.alerts.filter(a => a.type === 'critical').length;
-      if (criticalAlerts > 0) healthScore -= criticalAlerts * 5;
+      if (criticalAlerts > 0) healthScore -= Math.min(criticalAlerts * 3, 10);
       
-      // S'assurer que le score reste dans les limites
-      healthScore = Math.max(0, Math.min(100, healthScore));
+      // S'assurer que le score reste cohérent avec le SOH (pas plus de 10% d'écart)
+      const minScore = Math.max(0, soh - 10);
+      const maxScore = Math.min(100, soh + 5);
+      healthScore = Math.max(minScore, Math.min(maxScore, healthScore));
       
       return {
         batteryId: battery.batteryId,
@@ -906,7 +905,7 @@ const PylontechParser = () => {
         avgVoltage: avgVoltage.toFixed(2),
         avgTemp: avgTemp.toFixed(1),
         alerts: battery.alerts.length,
-        performanceScore: soh - (cycles / 100) + (avgVoltage * 10) - (battery.alerts.length * 5)
+        performanceScore: (soh * 0.4) + ((8000 - cycles) / 8000 * 30) + (Math.min(avgVoltage / 54 * 20, 20)) + (Math.max(20 - (battery.alerts.length * 2), 0)) + ((avgTemp > 15 && avgTemp < 35) ? 10 : Math.max(0, 10 - Math.abs(avgTemp - 25)))
       };
     });
 
@@ -931,37 +930,54 @@ const PylontechParser = () => {
       const criticalAlerts = battery.alerts.filter(a => a.type === 'critical').length;
       const warningAlerts = battery.alerts.filter(a => a.type === 'warning').length;
       
-      // Facteurs de risque
-      if (soh < 80) {
+      // Facteurs de risque basés sur SOH
+      if (soh < 70) {
         riskScore += 40;
-        riskFactors.push('SOH critique (< 80%)');
+        riskFactors.push('SOH critique (< 70%)');
+      } else if (soh < 80) {
+        riskScore += 25;
+        riskFactors.push('SOH dégradé (< 80%)');
       } else if (soh < 90) {
-        riskScore += 20;
-        riskFactors.push('SOH dégradé (< 90%)');
+        riskScore += 10;
+        riskFactors.push('SOH légèrement dégradé (< 90%)');
       }
       
-      if (cycles > 5000) {
+      // Facteurs de risque basés sur les cycles
+      if (cycles > 6000) {
         riskScore += 30;
-        riskFactors.push('Cycles élevés (> 5000)');
-      } else if (cycles > 3000) {
+        riskFactors.push('Cycles très élevés (> 6000)');
+      } else if (cycles > 4000) {
         riskScore += 15;
-        riskFactors.push('Cycles modérés (> 3000)');
+        riskFactors.push('Cycles élevés (> 4000)');
+      } else if (cycles > 2000) {
+        riskScore += 5;
+        riskFactors.push('Cycles modérés (> 2000)');
       }
       
+      // Facteurs de risque basés sur les alertes
       if (criticalAlerts > 0) {
-        riskScore += criticalAlerts * 15;
+        riskScore += criticalAlerts * 20;
         riskFactors.push(`${criticalAlerts} alerte(s) critique(s)`);
       }
       
-      if (warningAlerts > 5) {
-        riskScore += 10;
-        riskFactors.push(`${warningAlerts} alertes d'avertissement`);
+      if (warningAlerts > 10) {
+        riskScore += 15;
+        riskFactors.push(`Nombreuses alertes (${warningAlerts})`);
+      } else if (warningAlerts > 5) {
+        riskScore += 8;
+        riskFactors.push(`Plusieurs alertes (${warningAlerts})`);
       }
       
+      // Vérification de cohérence - éviter les faux positifs
+      if (soh >= 95 && cycles < 1000 && criticalAlerts === 0) {
+        riskScore = Math.min(riskScore, 10); // Plafonner le risque pour les batteries excellentes
+      }
+      
+      // Détermination du niveau de risque
       let riskLevel = 'Faible';
-      if (riskScore > 60) riskLevel = 'Critique';
-      else if (riskScore > 30) riskLevel = 'Élevé';
-      else if (riskScore > 15) riskLevel = 'Modéré';
+      if (riskScore >= 70) riskLevel = 'Critique';
+      else if (riskScore >= 40) riskLevel = 'Élevé';
+      else if (riskScore >= 20) riskLevel = 'Modéré';
       
       return {
         batteryId: battery.batteryId,

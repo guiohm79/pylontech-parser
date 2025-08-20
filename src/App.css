@@ -419,6 +419,15 @@ tr.critical {
   background-color: #fee2e2;
 }
 
+/* Ajustements pour le mode sombre */
+html[data-theme="dark"] tr.warning {
+  background-color: rgba(245, 158, 11, 0.2);
+}
+
+html[data-theme="dark"] tr.critical {
+  background-color: rgba(239, 68, 68, 0.2);
+}
+
 /* Badges d'état */
 .state-badge {
   display: inline-block;
