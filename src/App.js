@@ -581,6 +581,48 @@ const PylontechParser = () => {
     e.preventDefault();
   };
 
+  const handleFileInputChange = useCallback((e) => {
+    const files = Array.from(e.target.files);
+    
+    const filePromises = files.map(file => {
+      if (file.type === 'text/plain') {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const content = e.target.result;
+            const parsed = parseFile(content, file.name);
+            resolve(parsed);
+          };
+          reader.readAsText(file);
+        });
+      }
+      return Promise.resolve(null);
+    });
+
+    Promise.all(filePromises).then(results => {
+      const validFiles = results.filter(data => data !== null);
+      if (validFiles.length > 0) {
+        setLoadedBatteries(prevBatteries => {
+          const updatedBatteries = [...prevBatteries, ...validFiles];
+          
+          if (validFiles.length === 1) {
+            setSelectedBatteryId(validFiles[0].batteryId);
+            setParsedData(validFiles[0]);
+          }
+          
+          return updatedBatteries;
+        });
+      }
+    });
+
+    // Reset input value to allow selecting the same file again
+    e.target.value = '';
+  }, [thresholds, selectedBatteryId, loadedBatteries]);
+
+  const handleDropZoneClick = () => {
+    document.getElementById('file-input').click();
+  };
+
   // Fonction pour sélectionner une batterie
   const selectBattery = (batteryId) => {
     const battery = loadedBatteries.find(b => b.batteryId === batteryId);
@@ -2230,16 +2272,28 @@ const PylontechParser = () => {
         <h1>Parser Pylontech - Analyseur de Logs Multi-Batteries</h1>
         
         {loadedBatteries.length === 0 ? (
-          <div
-            className="drop-zone"
-            onDrop={handleFileDrop}
-            onDragOver={handleDragOver}
-          >
-            <div className="upload-icon">📁</div>
-            <p>Glissez et déposez vos fichiers historique.txt ici</p>
-            <p>📊 Un ou plusieurs fichiers : Analyse et comparaison automatique</p>
-            <p>Ou cliquez pour sélectionner</p>
-          </div>
+          <>
+            <input
+              id="file-input"
+              type="file"
+              accept=".txt"
+              multiple
+              onChange={handleFileInputChange}
+              style={{ display: 'none' }}
+            />
+            <div
+              className="drop-zone"
+              onDrop={handleFileDrop}
+              onDragOver={handleDragOver}
+              onClick={handleDropZoneClick}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="upload-icon">📁</div>
+              <p>Glissez et déposez vos fichiers historique.txt ici</p>
+              <p>📊 Un ou plusieurs fichiers : Analyse et comparaison automatique</p>
+              <p>Ou cliquez pour sélectionner</p>
+            </div>
+          </>
         ) : (
           <div>
             {renderBatterySelector()}

@@ -12,7 +12,8 @@
       "Bash(SET PORT=3001)",
       "Bash(set PORT=3001)",
       "Bash(npm run build:*)",
-      "Bash(npx serve:*)"
+      "Bash(npx serve:*)",
+      "Read(/C:\\Users\\guioh\\Documents\\Projets_Logiciels\\ParserPylontech/**)"
     ],
     "deny": [],
     "ask": []
