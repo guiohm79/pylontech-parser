@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Battery, AlertTriangle, CheckCircle, Info, Thermometer, Zap, Clock, Download, BarChart3, FileText, TrendingUp, X, Edit2, Check, Moon, Sun, Activity, Cpu, TrendingDown, AlertCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, Bar } from 'recharts';
 import './App.css';
@@ -39,6 +39,9 @@ const PylontechParser = () => {
     voltageHighCritical: 54.5,
     voltageLowCritical: 46.0
   });
+
+  // Référence pour l'input file caché
+  const fileInputRef = useRef(null);
 
   const parseFile = (content, filename = null) => {
     const lines = content.split('\n');
@@ -579,6 +582,51 @@ const PylontechParser = () => {
 
   const handleDragOver = (e) => {
     e.preventDefault();
+  };
+
+  // Fonction pour gérer la sélection de fichiers via l'input
+  const handleFileInputChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      const filePromises = files.map(file => {
+        if (file.type === 'text/plain') {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const content = e.target.result;
+              const parsed = parseFile(content, file.name);
+              parsed.alerts = generateAlerts(parsed.history, thresholds);
+              parsed.batteryId = generateBatteryId(file.name);
+              parsed.loadedAt = new Date().toLocaleString('fr-FR');
+              parsed.displayName = generateDisplayName(parsed);
+              resolve(parsed);
+            };
+            reader.readAsText(file);
+          });
+        } else {
+          return Promise.resolve(null);
+        }
+      });
+
+      Promise.all(filePromises).then(results => {
+        const validResults = results.filter(result => result !== null);
+        if (validResults.length > 0) {
+          setLoadedBatteries(prev => [...prev, ...validResults]);
+          if (validResults.length === 1) {
+            setSelectedBatteryId(validResults[0].batteryId);
+            setParsedData(validResults[0]);
+          }
+        }
+      });
+
+      // Réinitialiser l'input pour permettre la sélection du même fichier
+      e.target.value = '';
+    }
+  };
+
+  // Fonction pour ouvrir l'explorateur de fichiers
+  const handleDropZoneClick = () => {
+    fileInputRef.current?.click();
   };
 
   // Fonction pour sélectionner une batterie
@@ -2230,16 +2278,28 @@ const PylontechParser = () => {
         <h1>Parser Pylontech - Analyseur de Logs Multi-Batteries</h1>
         
         {loadedBatteries.length === 0 ? (
-          <div
-            className="drop-zone"
-            onDrop={handleFileDrop}
-            onDragOver={handleDragOver}
-          >
+          <>
+            {/* Input file caché pour l'ouverture de l'explorateur */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileInputChange}
+              accept=".txt"
+              multiple
+              style={{ display: 'none' }}
+            />
+            <div
+              className="drop-zone"
+              onDrop={handleFileDrop}
+              onDragOver={handleDragOver}
+              onClick={handleDropZoneClick}
+            >
             <div className="upload-icon">📁</div>
             <p>Glissez et déposez vos fichiers historique.txt ici</p>
             <p>📊 Un ou plusieurs fichiers : Analyse et comparaison automatique</p>
             <p>Ou cliquez pour sélectionner</p>
-          </div>
+            </div>
+          </>
         ) : (
           <div>
             {renderBatterySelector()}
