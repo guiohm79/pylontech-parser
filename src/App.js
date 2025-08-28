@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Battery, AlertTriangle, CheckCircle, Info, Thermometer, Zap, Clock, Download, BarChart3, FileText, TrendingUp, X, Edit2, Check, Moon, Sun, Activity, Cpu, TrendingDown, AlertCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, Bar } from 'recharts';
+import dbManager from './database';
 import './App.css';
 
 const PylontechParser = () => {
@@ -15,6 +16,7 @@ const PylontechParser = () => {
   const [showComparison, setShowComparison] = useState(false); // Mode comparaison graphique
   const [editingBatteryId, setEditingBatteryId] = useState(null); // Batterie en cours de renommage
   const [editingName, setEditingName] = useState(''); // Nom temporaire pendant l'édition
+  const [dbStats, setDbStats] = useState({ batteriesCount: 0, totalHistoryEntries: 0, totalAlerts: 0, databaseSize: 0 }); // Stats de la base
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Récupérer la préférence depuis localStorage ou utiliser la préférence système
     const saved = localStorage.getItem('pylontech-dark-mode');
@@ -294,16 +296,24 @@ const PylontechParser = () => {
   };
 
   // Fonction pour renommer une batterie
-  const renameBattery = (batteryId, newName) => {
-    setLoadedBatteries(prev => prev.map(battery => 
-      battery.batteryId === batteryId 
-        ? { ...battery, displayName: newName }
-        : battery
-    ));
-    
-    // Mettre à jour parsedData si c'est la batterie sélectionnée
-    if (selectedBatteryId === batteryId && parsedData) {
-      setParsedData(prev => ({ ...prev, displayName: newName }));
+  const renameBattery = async (batteryId, newName) => {
+    try {
+      const success = await dbManager.updateBatteryName(batteryId, newName);
+      if (success) {
+        setLoadedBatteries(prev => prev.map(battery => 
+          battery.batteryId === batteryId 
+            ? { ...battery, displayName: newName }
+            : battery
+        ));
+        
+        // Mettre à jour parsedData si c'est la batterie sélectionnée
+        if (selectedBatteryId === batteryId && parsedData) {
+          setParsedData(prev => ({ ...prev, displayName: newName }));
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du renommage:', error);
+      alert('Erreur lors du renommage de la batterie');
     }
     
     setEditingBatteryId(null);
@@ -327,6 +337,156 @@ const PylontechParser = () => {
     const newTheme = !isDarkMode;
     setIsDarkMode(newTheme);
     localStorage.setItem('pylontech-dark-mode', JSON.stringify(newTheme));
+  };
+
+  // Fonctions de gestion de base de données pour les batteries
+  const saveBatteriesToDatabase = async (batteries) => {
+    try {
+      await dbManager.saveBatteries(batteries);
+      await updateDbStats();
+    } catch (error) {
+      console.warn('Erreur lors de la sauvegarde base de données:', error);
+    }
+  };
+
+  const loadBatteriesFromDatabase = async () => {
+    try {
+      const batteries = await dbManager.getAllBatteries();
+      await updateDbStats();
+      return batteries;
+    } catch (error) {
+      console.warn('Erreur lors du chargement base de données:', error);
+      return [];
+    }
+  };
+
+  const updateDbStats = async () => {
+    try {
+      const stats = await dbManager.getDatabaseStats();
+      setDbStats(stats);
+    } catch (error) {
+      console.warn('Erreur lors de la mise à jour des statistiques:', error);
+    }
+  };
+
+  // Export de la base de données complète vers un fichier JSON
+  const exportDatabase = async () => {
+    try {
+      const exportData = await dbManager.exportToJSON();
+      if (!exportData) {
+        alert('Erreur lors de l\'export de la base de données');
+        return;
+      }
+
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const content = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pylontech-battery-database-${timestamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      alert('Erreur lors de l\'export de la base de données');
+    }
+  };
+
+  // Export JSON (pour compatibilité)
+  const exportAllBatteries = () => {
+    if (loadedBatteries.length === 0) {
+      alert('Aucune batterie à exporter');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      version: '1.0',
+      appVersion: 'Pylontech Parser v1.43',
+      batteriesCount: loadedBatteries.length,
+      thresholds: thresholds,
+      batteries: loadedBatteries.map(battery => ({
+        ...battery,
+        exportedAt: new Date().toISOString()
+      }))
+    };
+
+    const content = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pylontech-battery-history-${timestamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Import de base de données JSON
+  const importFile = (file) => {
+    if (file.name.endsWith('.json')) {
+      importBatteriesFromJSON(file);
+    } else {
+      alert('Format de fichier non supporté. Utilisez .json');
+    }
+  };
+
+  const importBatteriesFromJSON = async (file) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const importedData = JSON.parse(e.target.result);
+        
+        const result = await dbManager.importFromJSON(importedData);
+        
+        if (result.success) {
+          // Recharger les batteries depuis la base
+          const batteries = await loadBatteriesFromDatabase();
+          setLoadedBatteries(batteries);
+          
+          // Sélectionner la première batterie importée
+          if (result.imported && result.imported.length > 0) {
+            setSelectedBatteryId(result.imported[0].batteryId);
+            setParsedData(result.imported[0]);
+          }
+          
+          alert(result.message);
+        } else {
+          alert(result.message);
+        }
+
+      } catch (error) {
+        console.error('Erreur lors de l\'import JSON:', error);
+        alert('Erreur lors de l\'import du fichier JSON: ' + error.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Vider la base de données
+  const clearDatabase = async () => {
+    if (window.confirm('Êtes-vous sûr de vouloir vider la base de données ? Cette action supprimera toutes les batteries sauvegardées.')) {
+      try {
+        const success = await dbManager.clearDatabase();
+        if (success) {
+          setLoadedBatteries([]);
+          setSelectedBatteryId(null);
+          setParsedData(null);
+          await updateDbStats();
+          alert('Base de données vidée avec succès');
+        } else {
+          throw new Error('Erreur lors de la suppression');
+        }
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+        alert('Erreur lors de la suppression de la base de données');
+      }
+    }
   };
 
   const exportData = (format) => {
@@ -640,17 +800,26 @@ const PylontechParser = () => {
   };
 
   // Fonction pour supprimer une batterie
-  const removeBattery = (batteryId) => {
-    setLoadedBatteries(prev => prev.filter(b => b.batteryId !== batteryId));
-    if (selectedBatteryId === batteryId) {
-      const remaining = loadedBatteries.filter(b => b.batteryId !== batteryId);
-      if (remaining.length > 0) {
-        setSelectedBatteryId(remaining[0].batteryId);
-        setParsedData(remaining[0]);
-      } else {
-        setSelectedBatteryId(null);
-        setParsedData(null);
+  const removeBattery = async (batteryId) => {
+    try {
+      const success = await dbManager.deleteBattery(batteryId);
+      if (success) {
+        setLoadedBatteries(prev => prev.filter(b => b.batteryId !== batteryId));
+        if (selectedBatteryId === batteryId) {
+          const remaining = loadedBatteries.filter(b => b.batteryId !== batteryId);
+          if (remaining.length > 0) {
+            setSelectedBatteryId(remaining[0].batteryId);
+            setParsedData(remaining[0]);
+          } else {
+            setSelectedBatteryId(null);
+            setParsedData(null);
+          }
+        }
+        await updateDbStats();
       }
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      alert('Erreur lors de la suppression de la batterie');
     }
   };
 
@@ -1521,6 +1690,130 @@ const PylontechParser = () => {
     );
   };
 
+  const renderDataManagementSection = () => {
+    return (
+      <div className="data-management-section">
+        <div className="section-header">
+          <h2>
+            <Battery className="text-blue" />
+            Gestion des Données
+          </h2>
+          <div className="battery-stats">
+            <span className="stat-item">
+              <strong>{dbStats.batteriesCount}</strong> batterie(s) en base
+            </span>
+            {dbStats.batteriesCount > 0 && (
+              <span className="stat-item">
+                Taille base: {dbStats.databaseSize >= 1024 ? 
+                  `${(dbStats.databaseSize / 1024).toFixed(2)} MB` : 
+                  `${dbStats.databaseSize.toFixed(1)} KB`
+                }
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="data-management-controls">
+          <div className="control-group">
+            <h3>💾 Sauvegarde & Restauration</h3>
+            <div className="button-row">
+              <button 
+                onClick={exportDatabase}
+                className="action-btn export-btn"
+                disabled={dbStats.batteriesCount === 0}
+                title="Télécharger la base de données complète en JSON"
+              >
+                <Download size={16} />
+                Exporter base (JSON)
+              </button>
+              
+              <button 
+                onClick={exportAllBatteries}
+                className="action-btn export-btn"
+                disabled={loadedBatteries.length === 0}
+                title="Télécharger toutes les batteries en JSON (compatibilité)"
+              >
+                <FileText size={16} />
+                Exporter JSON
+              </button>
+              
+              <label className="action-btn import-btn">
+                <input 
+                  type="file" 
+                  accept=".json" 
+                  onChange={(e) => {
+                    if (e.target.files[0]) {
+                      importFile(e.target.files[0]);
+                      e.target.value = '';
+                    }
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <FileText size={16} />
+                Importer (JSON)
+              </label>
+            </div>
+          </div>
+
+          <div className="control-group">
+            <h3>🗂️ Gestion de la Base</h3>
+            <div className="button-row">
+              <button 
+                onClick={clearDatabase}
+                className="action-btn danger-btn"
+                title="Vider complètement la base de données SQLite"
+              >
+                <AlertTriangle size={16} />
+                Vider la base
+              </button>
+            </div>
+            <p className="help-text">
+              La base de données IndexedDB contient toutes vos batteries. 
+              Exportez vos données avant de la vider !
+            </p>
+          </div>
+
+          {dbStats.batteriesCount > 0 && (
+            <div className="control-group">
+              <h3>📊 Informations détaillées</h3>
+              <div className="cache-info">
+                <div className="info-grid">
+                  <div className="info-item">
+                    <span className="info-label">Batteries stockées:</span>
+                    <span className="info-value">{dbStats.batteriesCount}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Données historiques:</span>
+                    <span className="info-value">
+                      {dbStats.totalHistoryEntries?.toLocaleString() || 0} entrées
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Alertes générées:</span>
+                    <span className="info-value">
+                      {dbStats.totalAlerts || 0} alertes
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Taille base de données:</span>
+                    <span className="info-value">
+                      {dbStats.databaseSize >= 1024*1024 ? 
+                        `${(dbStats.databaseSize / (1024*1024)).toFixed(2)} MB` : 
+                        dbStats.databaseSize >= 1024 ?
+                        `${(dbStats.databaseSize / 1024).toFixed(1)} KB` :
+                        `${dbStats.databaseSize} bytes`
+                      }
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderChartsSection = () => {
     if (showComparison && loadedBatteries.length > 1) {
       return renderComparisonCharts();
@@ -2263,6 +2556,39 @@ const PylontechParser = () => {
     document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
+  // Charger les batteries depuis la base de données au démarrage
+  React.useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const savedBatteries = await loadBatteriesFromDatabase();
+        if (savedBatteries.length > 0) {
+          setLoadedBatteries(savedBatteries);
+          // Sélectionner la première batterie par défaut
+          if (savedBatteries[0] && !selectedBatteryId) {
+            setSelectedBatteryId(savedBatteries[0].batteryId);
+            setParsedData(savedBatteries[0]);
+          }
+        } else {
+          // Initialiser les statistiques même s'il n'y a pas de batteries
+          await updateDbStats();
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement initial:', error);
+      }
+    };
+    
+    loadInitialData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);  // Seulement au montage du composant
+
+  // Sauvegarder automatiquement chaque fois que loadedBatteries change
+  React.useEffect(() => {
+    if (loadedBatteries.length > 0) {
+      saveBatteriesToDatabase(loadedBatteries);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadedBatteries]);
+
   return (
     <div className="App" data-theme={isDarkMode ? 'dark' : 'light'}>
       {/* Bouton de basculement de thème */}
@@ -2384,6 +2710,13 @@ const PylontechParser = () => {
                     <Cpu size={16} />
                     Recherche Détaillée
                   </button>
+                  <button
+                    onClick={() => setSelectedSection('data-management')}
+                    className={`tab ${selectedSection === 'data-management' ? 'active' : ''}`}
+                  >
+                    <Battery size={16} />
+                    Gestion des Données
+                  </button>
                 </div>
                 
                 {selectedSection === 'info' && renderInfoSection()}
@@ -2393,6 +2726,7 @@ const PylontechParser = () => {
                 {selectedSection === 'charts' && renderChartsSection()}
                 {selectedSection === 'advanced' && renderAdvancedAnalysisSection()}
                 {selectedSection === 'detailed' && renderDetailedAnalysisSection()}
+                {selectedSection === 'data-management' && renderDataManagementSection()}
               </div>
             )}
           </div>

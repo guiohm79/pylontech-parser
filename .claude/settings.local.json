@@ -14,7 +14,9 @@
       "Bash(npm run build:*)",
       "Bash(npx serve:*)",
       "Read(/C:\\Users\\guioh\\Documents\\Projets_Logiciels\\ParserPylontech/**)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []
