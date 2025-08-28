@@ -2243,3 +2243,100 @@ html[data-theme="dark"] .recommendation-info {
     gap: 8px;
   }
 }
+
+/* Styles pour les graphiques de déséquilibre des cellules */
+.chart-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chart-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.chart-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.filter-option input[type="checkbox"] {
+  accent-color: #3b82f6;
+  transform: scale(1.1);
+}
+
+.chart-stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.chart-stats .stat {
+  background: var(--bg-tertiary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.chart-indicators {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.indicator-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+/* Responsive pour les graphiques de cellules */
+@media (max-width: 768px) {
+  .chart-header {
+    gap: 12px;
+  }
+  
+  .filter-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .chart-stats {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .chart-indicators {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

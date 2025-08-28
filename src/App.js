@@ -32,6 +32,12 @@ const PylontechParser = () => {
     showNormalOnly: false,
     showAlertsOnly: false
   });
+
+  const [cellImbalanceFilters, setCellImbalanceFilters] = useState({
+    showOnlyImbalanced: false,
+    showCellVoltages: false,
+    imbalanceThreshold: 20 // mV
+  });
   
   const [thresholds, setThresholds] = useState({
     tempWarning: 40,
@@ -900,6 +906,92 @@ const PylontechParser = () => {
       state2: states[index]?.state2 || 'N/A',
       percentage: percentages[index] || 'N/A'
     }));
+  };
+
+  // Fonctions de calcul du déséquilibre des cellules
+  const calculateCellImbalance = (entry) => {
+    if (!entry.cellData || !entry.cellData.voltages.length) return null;
+
+    const voltages = entry.cellData.voltages.map(v => v / 1000); // Conversion mV -> V
+    const minVoltage = Math.min(...voltages);
+    const maxVoltage = Math.max(...voltages);
+    const avgVoltage = voltages.reduce((acc, v) => acc + v, 0) / voltages.length;
+    const imbalance = maxVoltage - minVoltage;
+
+    return {
+      voltages,
+      minVoltage,
+      maxVoltage,
+      avgVoltage,
+      imbalance,
+      cellCount: voltages.length,
+      timestamp: entry.day + ' ' + entry.time
+    };
+  };
+
+  const prepareCellImbalanceChartData = (history, showOnlyImbalanced = false) => {
+    if (!history || history.length === 0) return [];
+
+    const imbalanceThreshold = 0.020; // 20mV de seuil pour déséquilibre significatif (en V)
+    
+    return history
+      .filter(entry => entry.cellData && entry.cellData.voltages.length > 0)
+      .map(entry => {
+        const imbalanceData = calculateCellImbalance(entry);
+        if (!imbalanceData) return null;
+
+        const cellData = {};
+        imbalanceData.voltages.forEach((voltage, index) => {
+          const deviation = voltage - imbalanceData.avgVoltage;
+          cellData[`cell_${index + 1}`] = voltage;
+          cellData[`cell_${index + 1}_deviation`] = deviation;
+        });
+
+        return {
+          timestamp: imbalanceData.timestamp,
+          time: entry.time,
+          day: entry.day,
+          imbalance: imbalanceData.imbalance * 1000, // Conversion V -> mV pour affichage
+          minVoltage: imbalanceData.minVoltage,
+          maxVoltage: imbalanceData.maxVoltage,
+          avgVoltage: imbalanceData.avgVoltage,
+          cellCount: imbalanceData.cellCount,
+          isImbalanced: imbalanceData.imbalance > imbalanceThreshold,
+          ...cellData
+        };
+      })
+      .filter(data => data !== null)
+      .filter(data => showOnlyImbalanced ? data.isImbalanced : true)
+      .slice(0, 100); // Limiter à 100 points pour la performance
+  };
+
+  const getCellImbalanceStats = (history) => {
+    if (!history || history.length === 0) return null;
+
+    const imbalanceData = history
+      .filter(entry => entry.cellData && entry.cellData.voltages.length > 0)
+      .map(entry => calculateCellImbalance(entry))
+      .filter(data => data !== null);
+
+    if (imbalanceData.length === 0) return null;
+
+    const imbalances = imbalanceData.map(data => data.imbalance * 1000); // mV
+    const avgImbalance = imbalances.reduce((acc, val) => acc + val, 0) / imbalances.length;
+    const maxImbalance = Math.max(...imbalances);
+    const minImbalance = Math.min(...imbalances);
+
+    // Compter les déséquilibres significatifs (>20mV)
+    const significantImbalances = imbalances.filter(imb => imb > 20).length;
+    const imbalanceRate = (significantImbalances / imbalances.length) * 100;
+
+    return {
+      avgImbalance,
+      maxImbalance,
+      minImbalance,
+      significantImbalances,
+      imbalanceRate,
+      totalMeasurements: imbalances.length
+    };
   };
 
   // Fonction pour recharger les seuils sur toutes les batteries
@@ -1895,6 +1987,147 @@ const PylontechParser = () => {
               </LineChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Graphique de déséquilibre des cellules */}
+          {(() => {
+            const cellImbalanceData = prepareCellImbalanceChartData(
+              parsedData.history, 
+              cellImbalanceFilters.showOnlyImbalanced
+            );
+            const imbalanceStats = getCellImbalanceStats(parsedData.history);
+            
+            if (cellImbalanceData.length === 0) return null;
+
+            return (
+              <div className="chart-wrapper">
+                <div className="chart-header">
+                  <h3>Déséquilibre des Cellules</h3>
+                  <div className="chart-controls">
+                    <div className="filter-controls">
+                      <label className="filter-option">
+                        <input
+                          type="checkbox"
+                          checked={cellImbalanceFilters.showOnlyImbalanced}
+                          onChange={(e) => setCellImbalanceFilters(prev => ({
+                            ...prev,
+                            showOnlyImbalanced: e.target.checked
+                          }))}
+                        />
+                        Seulement déséquilibrées (&gt;{cellImbalanceFilters.imbalanceThreshold}mV)
+                      </label>
+                      <label className="filter-option">
+                        <input
+                          type="checkbox"
+                          checked={cellImbalanceFilters.showCellVoltages}
+                          onChange={(e) => setCellImbalanceFilters(prev => ({
+                            ...prev,
+                            showCellVoltages: e.target.checked
+                          }))}
+                        />
+                        Afficher les tensions individuelles
+                      </label>
+                    </div>
+                  </div>
+                  {imbalanceStats && (
+                    <div className="chart-stats">
+                      <span className="stat">Moy: {imbalanceStats.avgImbalance.toFixed(1)}mV</span>
+                      <span className="stat">Max: {imbalanceStats.maxImbalance.toFixed(1)}mV</span>
+                      <span className="stat">Déséq. significatifs: {imbalanceStats.significantImbalances}</span>
+                      <span className="stat">Mesures: {cellImbalanceData.length}/{imbalanceStats.totalMeasurements}</span>
+                    </div>
+                  )}
+                </div>
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={cellImbalanceData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="time" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis 
+                      yAxisId="imbalance"
+                      domain={['dataMin - 5', 'dataMax + 5']} 
+                      label={{ value: 'Déséquilibre (mV)', angle: -90, position: 'insideLeft' }}
+                    />
+                    {cellImbalanceFilters.showCellVoltages && (
+                      <YAxis 
+                        yAxisId="voltage"
+                        orientation="right"
+                        domain={['dataMin - 0.01', 'dataMax + 0.01']}
+                        label={{ value: 'Tension (V)', angle: 90, position: 'insideRight' }}
+                      />
+                    )}
+                    <Tooltip 
+                      formatter={(value, name) => {
+                        if (name === 'imbalance') return [`${value.toFixed(1)}mV`, 'Déséquilibre'];
+                        if (name === 'avgVoltage') return [`${value.toFixed(3)}V`, 'Tension moyenne'];
+                        if (name.startsWith('cell_') && !name.includes('deviation')) {
+                          return [`${value.toFixed(3)}V`, name.replace('cell_', 'Cellule ')];
+                        }
+                        return [value, name];
+                      }}
+                      labelFormatter={(label) => `Heure: ${label}`}
+                    />
+                    <Legend />
+                    
+                    {/* Ligne de déséquilibre principal */}
+                    <Line 
+                      yAxisId="imbalance"
+                      type="monotone" 
+                      dataKey="imbalance" 
+                      stroke="#dc2626" 
+                      strokeWidth={2}
+                      name="Déséquilibre (mV)"
+                      dot={{ fill: '#dc2626', strokeWidth: 2, r: 3 }}
+                    />
+                    
+                    {/* Lignes des tensions individuelles si activées */}
+                    {cellImbalanceFilters.showCellVoltages && (() => {
+                      const cellColors = [
+                        '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+                        '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
+                        '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef'
+                      ];
+                      
+                      return Array.from({ length: 15 }, (_, index) => (
+                        <Line
+                          key={`cell_${index + 1}`}
+                          yAxisId="voltage"
+                          type="monotone"
+                          dataKey={`cell_${index + 1}`}
+                          stroke={cellColors[index]}
+                          strokeWidth={1}
+                          name={`Cell ${index + 1}`}
+                          dot={false}
+                          strokeOpacity={0.7}
+                          connectNulls={false}
+                        />
+                      ));
+                    })()}
+                  </LineChart>
+                </ResponsiveContainer>
+                
+                {/* Indicateurs de seuil */}
+                <div className="chart-indicators">
+                  <div className="indicator">
+                    <span className="indicator-color" style={{backgroundColor: '#dc2626'}}></span>
+                    <span>Déséquilibre critique: &gt;20mV</span>
+                  </div>
+                  <div className="indicator">
+                    <span className="indicator-color" style={{backgroundColor: '#f59e0b'}}></span>
+                    <span>Déséquilibre modéré: 10-20mV</span>
+                  </div>
+                  <div className="indicator">
+                    <span className="indicator-color" style={{backgroundColor: '#16a34a'}}></span>
+                    <span>Équilibrage normal: &lt;10mV</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     );
