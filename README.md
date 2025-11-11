@@ -6,7 +6,11 @@
 
 Une application web moderne et puissante pour analyser et visualiser les logs des batteries Pylontech exportés depuis le logiciel **Battery View**. Conçue pour les installateurs, techniciens et professionnels du monitoring de systèmes de stockage d'énergie.
 
-## 📋 Table des Matières
+![Example 1](https://raw.githubusercontent.com/guiohm79/pylontech-parser/master/Captures/Capture1.png)
+![Example 2](https://raw.githubusercontent.com/guiohm79/pylontech-parser/master/Captures/Capture2.png)
+
+
+##  Table des Matières
 
 - [À Propos](#-à-propos)
 - [Fonctionnalités](#-fonctionnalités)
