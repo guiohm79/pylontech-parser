@@ -1,4 +1,4 @@
-# 🔋 Pylontech Parser - Analyseur de Logs Multi-Batteries
+#  Pylontech Parser - Analyseur de Logs Multi-Batteries
 
 [![React](https://img.shields.io/badge/React-19.1.0-61dafb?logo=react)](https://reactjs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -19,7 +19,7 @@ Une application web moderne et puissante pour analyser et visualiser les logs de
 - [Contribution](#-contribution)
 - [Licence](#-licence)
 
-## 🎯 À Propos
+##  À Propos
 
 **Pylontech Parser** est un outil d'analyse avancé qui permet de transformer les fichiers historiques bruts des batteries Pylontech (format `.txt`) en visualisations interactives et analyses approfondies.
 
@@ -28,12 +28,12 @@ Une application web moderne et puissante pour analyser et visualiser les logs de
 Les fichiers analysés par cette application sont exportés depuis le logiciel officiel **Battery View** de Pylontech. Battery View est l'outil de gestion fourni par Pylontech pour surveiller les batteries en temps réel. Cet outil permet d'exporter l'historique complet d'une batterie sous forme de fichiers texte.
 
 **Pylontech Parser** prend ces exports et les transforme en :
-- 📊 Graphiques de tendances interactifs
-- 🔍 Analyses de santé détaillées (SOH, cycles, dégradation)
-- ⚠️ Système d'alertes intelligent
-- 📈 Comparaisons multi-batteries
-- 💾 Base de données locale persistante
-- 📄 Exports et rapports professionnels
+-  Graphiques de tendances interactifs
+-  Analyses de santé détaillées (SOH, cycles, dégradation)
+-  Système d'alertes intelligent
+-  Comparaisons multi-batteries
+-  Base de données locale persistante
+-  Exports et rapports professionnels
 
 ### Cas d'Usage
 
@@ -43,9 +43,9 @@ Les fichiers analysés par cette application sont exportés depuis le logiciel o
 - **Auditeurs énergétiques** : Rapports de performance détaillés
 - **Particuliers** : Suivi de leur installation personnelle
 
-## ✨ Fonctionnalités
+##  Fonctionnalités
 
-### 📥 Import et Gestion de Données
+###  Import et Gestion de Données
 
 - **Drag & Drop** : Glissez-déposez vos fichiers `.txt` directement
 - **Multi-fichiers** : Importez plusieurs batteries simultanément
@@ -54,7 +54,7 @@ Les fichiers analysés par cette application sont exportés depuis le logiciel o
 - **Base de données locale** : Stockage persistant avec IndexedDB (Dexie)
 - **Import/Export** : Sauvegardez et restaurez vos analyses (JSON)
 
-### 🔋 Analyse de Santé des Batteries
+###  Analyse de Santé des Batteries
 
 #### État de Santé (SOH)
 - Calcul multi-méthodes avec fallback automatique
@@ -74,7 +74,7 @@ Les fichiers analysés par cette application sont exportés depuis le logiciel o
 - Visualisation des écarts de tension
 - Seuils configurables
 
-### ⚠️ Système d'Alertes
+###  Système d'Alertes
 
 - **Alertes de température** : Warning (>40°C) / Critique (>45°C)
 - **Alertes de tension** : Haute/Basse avec niveaux critiques
@@ -82,7 +82,7 @@ Les fichiers analysés par cette application sont exportés depuis le logiciel o
 - **Seuils configurables** : Adaptez aux spécificités de votre installation
 - **Historique complet** : Toutes les alertes horodatées
 
-### 📊 Visualisations Graphiques
+###  Visualisations Graphiques
 
 #### Graphiques Disponibles
 - **Tension** : Line chart avec tendances
@@ -97,7 +97,7 @@ Les fichiers analysés par cette application sont exportés depuis le logiciel o
 - Détection des anomalies relatives
 - Classement automatique
 
-### 🔬 Analyses Avancées
+###  Analyses Avancées
 
 - **Comparaison de performances** : Scoring et classement
 - **Évaluation des risques** : Score de risque avec facteurs détaillés
@@ -105,14 +105,14 @@ Les fichiers analysés par cette application sont exportés depuis le logiciel o
 - **Recherche détaillée** : Filtrage avancé dans l'historique
 - **Analyse cellule par cellule** : Voltage, température, états individuels
 
-### 💾 Export et Rapports
+###  Export et Rapports
 
 - **CSV** : Données tabulaires pour Excel/LibreOffice
 - **JSON** : Format structuré pour traitement automatique
 - **PDF** : Rapports imprimables avec statistiques
 - **Export base complète** : Sauvegarde de toutes les batteries
 
-### 🎨 Interface Utilisateur
+###  Interface Utilisateur
 
 - **Thème clair/sombre** : Adaptation automatique ou manuelle
 - **Interface responsive** : Optimisée pour desktop et tablettes
@@ -120,7 +120,7 @@ Les fichiers analysés par cette application sont exportés depuis le logiciel o
 - **Renommage de batteries** : Noms personnalisés
 - **Mode hors-ligne** : Fonctionne 100% en local
 
-## 🚀 Installation
+##  Installation
 
 ### Prérequis
 
@@ -257,7 +257,7 @@ Date,Heure,Tension(V),Courant(A),Temperature(°C),SOC,État,TempAlert,VoltageAle
 - Statistiques clés
 - Liste des alertes
 
-## 📄 Format des Fichiers
+##  Format des Fichiers
 
 ### Nom de Fichier Attendu
 
@@ -302,7 +302,7 @@ data history
   - États (base, voltage, current, temp)
   - **15 cellules** : tensions, températures, états individuels
 
-## 🏗️ Architecture
+##  Architecture
 
 Le projet suit une architecture modulaire moderne pour améliorer la maintenabilité et la testabilité.
 
@@ -338,7 +338,7 @@ src/
 
 Pour plus de détails, consultez [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-## 🛠️ Technologies
+##  Technologies
 
 ### Frontend Framework
 - **React 19.1.0** - Framework UI moderne
@@ -370,7 +370,7 @@ Pour plus de détails, consultez [ARCHITECTURE.md](./ARCHITECTURE.md).
 - **Babel** - Transpilation ES6+
 - **ESLint** - Linting du code
 
-## 🧪 Tests
+##  Tests
 
 Le projet inclut une suite complète de tests unitaires.
 
@@ -424,7 +424,7 @@ Hooks:
 - Évaluation des risques
 - Génération de recommandations
 
-## 🤝 Contribution
+##  Contribution
 
 Les contributions sont les bienvenues ! Voici comment contribuer :
 
@@ -455,15 +455,15 @@ Les contributions sont les bienvenues ! Voici comment contribuer :
 
 ### Idées de Contributions
 
-- 🎨 Nouveaux thèmes de couleurs
-- 📊 Nouveaux types de graphiques
-- 🔍 Algorithmes d'analyse supplémentaires
-- 🌐 Internationalisation (i18n)
-- 📱 Amélioration du responsive mobile
-- 🐛 Corrections de bugs
-- 📖 Améliorations de la documentation
+-  Nouveaux thèmes de couleurs
+-  Nouveaux types de graphiques
+-  Algorithmes d'analyse supplémentaires
+-  Internationalisation (i18n)
+-  Amélioration du responsive mobile
+-  Corrections de bugs
+-  Améliorations de la documentation
 
-## 🐛 Signaler un Bug
+##  Signaler un Bug
 
 Trouvé un bug ? Créez une issue sur GitHub :
 
@@ -476,50 +476,49 @@ Trouvé un bug ? Créez une issue sur GitHub :
    - Captures d'écran si applicable
    - Version du navigateur et OS
 
-## 📝 Changelog
+##  Changelog
 
 ### v1.5 (Actuel)
-- ✨ Graphiques de déséquilibre cellulaire
-- 🔧 Optimisations de la base de données
-- 🐛 Corrections du thème sombre
-- 📊 Nouvelles analyses avancées
+-  Graphiques de déséquilibre cellulaire
+-  Optimisations de la base de données
+-  Corrections du thème sombre
+-  Nouvelles analyses avancées
 
 ### v1.4
-- 🔍 Recherche avancée dans l'historique
-- 📈 Analyse de dégradation améliorée
-- ⚡ Performances optimisées
+-  Recherche avancée dans l'historique
+-  Analyse de dégradation améliorée
+-  Performances optimisées
 
 ### v1.3
-- 🧪 Framework d'analyse avancée
-- 📊 Mode comparaison multi-batteries
-- 💾 Gestion améliorée de la base de données
+-  Framework d'analyse avancée
+-  Mode comparaison multi-batteries
+-  Gestion améliorée de la base de données
 
 ### v1.0
-- 🎉 Version initiale
-- 📥 Import de fichiers Pylontech
-- 📊 Graphiques de base
-- ⚠️ Système d'alertes
+-  Version initiale
+-  Import de fichiers Pylontech
+-  Graphiques de base
+-  Système d'alertes
 
 ## 📄 Licence
 
 Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
 
-## 🙏 Remerciements
+##  Remerciements
 
 - **Pylontech** pour la documentation des formats de fichiers
 - **Battery View** pour l'outil d'export
 - La communauté Open Source React
 - Tous les contributeurs du projet
 
-## 📞 Support & Contact
+##  Support & Contact
 
 - **Issues GitHub** : [github.com/guiohm79/pylontech-parser/issues](https://github.com/guiohm79/pylontech-parser/issues)
 - **Discussions** : [github.com/guiohm79/pylontech-parser/discussions](https://github.com/guiohm79/pylontech-parser/discussions)
 
-## ⭐ Star le Projet
+##  Star le Projet
 
 Si ce projet vous est utile, n'hésitez pas à lui donner une étoile sur GitHub ! ⭐
 
 ---
 
-**Développé avec ❤️ pour la communauté de l'énergie solaire et du stockage**
